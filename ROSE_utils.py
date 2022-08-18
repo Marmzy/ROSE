@@ -252,75 +252,75 @@ def gffToBed(gff,output= ''):
 #Locus and LocusCollection instances courtesy of Graham Ruby
 
 
-class Locus:
-    # this may save some space by reducing the number of chromosome strings
-    # that are associated with Locus instances (see __init__).
-    __chrDict = dict()
-    __senseDict = {'+':'+', '-':'-', '.':'.'}
-    # chr = chromosome name (string)
-    # sense = '+' or '-' (or '.' for an ambidexterous locus)
-    # start,end = ints of the start and end coords of the locus;
-    #      end coord is the coord of the last nucleotide.
-    def __init__(self,chr,start,end,sense,ID=''):
-        coords = [int(start),int(end)]
-        coords.sort()
-        # this method for assigning chromosome should help avoid storage of
-        # redundant strings.
-        if not(self.__chrDict.has_key(chr)): self.__chrDict[chr] = chr
-        self._chr = self.__chrDict[chr]
-        self._sense = self.__senseDict[sense]
-        self._start = int(coords[0])
-        self._end = int(coords[1])
-        self._ID = ID
-    def ID(self): return self._ID
-    def chr(self): return self._chr
-    def start(self): return self._start  ## returns the smallest coordinate
-    def end(self): return self._end   ## returns the biggest coordinate
-    def len(self): return self._end - self._start + 1
-    def getAntisenseLocus(self):
-        if self._sense=='.': return self
-        else:
-            switch = {'+':'-', '-':'+'}
-            return Locus(self._chr,self._start,self._end,switch[self._sense])
-    def coords(self): return [self._start,self._end]  ## returns a sorted list of the coordinates
-    def sense(self): return self._sense
-    # returns boolean; True if two loci share any coordinates in common
-    def overlaps(self,otherLocus):
-        if self.chr()!=otherLocus.chr(): return False
-        elif not(self._sense=='.' or \
-                 otherLocus.sense()=='.' or \
-                 self.sense()==otherLocus.sense()): return False
-        elif self.start() > otherLocus.end() or otherLocus.start() > self.end(): return False
-        else: return True
+# class Locus:
+#     # this may save some space by reducing the number of chromosome strings
+#     # that are associated with Locus instances (see __init__).
+#     __chrDict = dict()
+#     __senseDict = {'+':'+', '-':'-', '.':'.'}
+#     # chr = chromosome name (string)
+#     # sense = '+' or '-' (or '.' for an ambidexterous locus)
+#     # start,end = ints of the start and end coords of the locus;
+#     #      end coord is the coord of the last nucleotide.
+#     def __init__(self,chr,start,end,sense,ID=''):
+#         coords = [int(start),int(end)]
+#         coords.sort()
+#         # this method for assigning chromosome should help avoid storage of
+#         # redundant strings.
+#         if not(self.__chrDict.has_key(chr)): self.__chrDict[chr] = chr
+#         self._chr = self.__chrDict[chr]
+#         self._sense = self.__senseDict[sense]
+#         self._start = int(coords[0])
+#         self._end = int(coords[1])
+#         self._ID = ID
+#     def ID(self): return self._ID
+#     def chr(self): return self._chr
+#     def start(self): return self._start  ## returns the smallest coordinate
+#     def end(self): return self._end   ## returns the biggest coordinate
+#     def len(self): return self._end - self._start + 1
+#     def getAntisenseLocus(self):
+#         if self._sense=='.': return self
+#         else:
+#             switch = {'+':'-', '-':'+'}
+#             return Locus(self._chr,self._start,self._end,switch[self._sense])
+#     def coords(self): return [self._start,self._end]  ## returns a sorted list of the coordinates
+#     def sense(self): return self._sense
+#     # returns boolean; True if two loci share any coordinates in common
+#     def overlaps(self,otherLocus):
+#         if self.chr()!=otherLocus.chr(): return False
+#         elif not(self._sense=='.' or \
+#                  otherLocus.sense()=='.' or \
+#                  self.sense()==otherLocus.sense()): return False
+#         elif self.start() > otherLocus.end() or otherLocus.start() > self.end(): return False
+#         else: return True
         
-    # returns boolean; True if all the nucleotides of the given locus overlap
-    #      with the self locus
-    def contains(self,otherLocus):
-        if self.chr()!=otherLocus.chr(): return False
-        elif not(self._sense=='.' or \
-                 otherLocus.sense()=='.' or \
-                 self.sense()==otherLocus.sense()): return False
-        elif self.start() > otherLocus.start() or otherLocus.end() > self.end(): return False
-        else: return True
+#     # returns boolean; True if all the nucleotides of the given locus overlap
+#     #      with the self locus
+#     def contains(self,otherLocus):
+#         if self.chr()!=otherLocus.chr(): return False
+#         elif not(self._sense=='.' or \
+#                  otherLocus.sense()=='.' or \
+#                  self.sense()==otherLocus.sense()): return False
+#         elif self.start() > otherLocus.start() or otherLocus.end() > self.end(): return False
+#         else: return True
         
-    # same as overlaps, but considers the opposite strand
-    def overlapsAntisense(self,otherLocus):
-        return self.getAntisenseLocus().overlaps(otherLocus)
-    # same as contains, but considers the opposite strand
-    def containsAntisense(self,otherLocus):
-        return self.getAntisenseLocus().contains(otherLocus)
-    def __hash__(self): return self._start + self._end
-    def __eq__(self,other):
-        if self.__class__ != other.__class__: return False
-        if self.chr()!=other.chr(): return False
-        if self.start()!=other.start(): return False
-        if self.end()!=other.end(): return False
-        if self.sense()!=other.sense(): return False
-        return True
-    def __ne__(self,other): return not(self.__eq__(other))
-    def __str__(self): return self.chr()+'('+self.sense()+'):'+'-'.join(map(str,self.coords()))
-    def checkRep(self):
-        pass
+#     # same as overlaps, but considers the opposite strand
+#     def overlapsAntisense(self,otherLocus):
+#         return self.getAntisenseLocus().overlaps(otherLocus)
+#     # same as contains, but considers the opposite strand
+#     def containsAntisense(self,otherLocus):
+#         return self.getAntisenseLocus().contains(otherLocus)
+#     def __hash__(self): return self._start + self._end
+#     def __eq__(self,other):
+#         if self.__class__ != other.__class__: return False
+#         if self.chr()!=other.chr(): return False
+#         if self.start()!=other.start(): return False
+#         if self.end()!=other.end(): return False
+#         if self.sense()!=other.sense(): return False
+#         return True
+#     def __ne__(self,other): return not(self.__eq__(other))
+#     def __str__(self): return self.chr()+'('+self.sense()+'):'+'-'.join(map(str,self.coords()))
+#     def checkRep(self):
+#         pass
 
 
 class LocusCollection:

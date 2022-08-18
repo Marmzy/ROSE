@@ -9,13 +9,13 @@ CONTACT: youngcomputation@wi.mit.edu
 '''
 
 import argparse
-# import ROSE_utils
-import shutil
 
 from pathlib import Path
+from src.main_functions import regionStitching
 from src.utils.annotation import makeStartDict
-from src.utils.conversion import bed_to_gff3, gtf_to_gff3
+from src.utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
 from src.utils.file_helper import get_path, check_file, check_path
+from src.utils.locus import gffToLocusCollection
 from typing import Any, Dict
 
 def str2bool(
@@ -89,7 +89,6 @@ def main():
     path = get_path()
 
     #Initialising variables
-    # annotFile = genomeDict[upper(args.genome)]
     debug = False
     genomeDict = {
         "HG18": Path(path, "data", "annotation", "hg18_refseq.ucsc"),
@@ -100,12 +99,7 @@ def main():
         "MM10": Path(path, "data", "annotation", "mm10_refseq.ucsc"),
         }
     stitchWindow = int(args.stitch)
-    tssWindow = int(args.tss)
 
-    # if tssWindow != 0:
-    #     removeTSS = True
-    # else:
-    #     removeTSS = False
     if args.control:        
         bamFileList = [args.rankby, args.control]
     else:
@@ -126,17 +120,23 @@ def main():
         inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         # bed_to_gff3(args.input, inputGFFFile)
 
+    elif Path(args.input).suffix == ".gff":
+        if args.verbose:
+            print("Converting input .gtf file to .gff3 format")
+        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
+        gff_to_gff3(args.input, inputGFFFile)
+
     elif Path(args.input).suffix == ".gtf":
         if args.verbose:
             print("Converting input .gtf file to .gff3 format")
         inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         # gtf_to_gff3(args.input, inputGFFFile, full=False)
 
-    elif Path(args.input).suffix == ".gff" or Path(args.input).suffix == ".gff3":
+    elif Path(args.input).suffix == ".gff3":
         if args.verbose:
-            print("Copying input .gff file to new directory")
+            print("Checking input .gff3 file")
         inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
-        # shutil.copyfile(args.input, inputGFFFile)
+        # check_gff(args.input, inputGFFFile)
         
     else:
         raise ValueError("Input file must be a .bed, .gtf, .gff or gff3 file")
@@ -146,25 +146,23 @@ def main():
         print(f"Using {inputGFFFile} as the input .gff file\n")
     inputName = str(Path(inputGFFFile).stem)
 
-    # annotFile = genomeDict[upper(genome)]
-
     #Making the start dict
-    if args.verbose:
-        print("Making the start dict")
+    # if args.verbose:
+    #     print("Making the start dict")
     startDict = makeStartDict(check_file(str(genomeDict[args.genome.upper()])))
 
+    #Loading int the bound region reference collection
+    referenceCollection = gffToLocusCollection(check_file(inputGFFFile))
 
-    # #LOADING IN THE BOUND REGION REFERENCE COLLECTION
-    # print('LOADING IN GFF REGIONS')
-    # referenceCollection = ROSE_utils.gffToLocusCollection(inputGFFFile)
+    # #Checking input regions for formatting  ->  delete as this check is done as part of gffToLocusCollection
+    # if args.verbose:
+    #     print("Checking input to make sure each region has a unique identifier")
+    # checkRefCollection(referenceCollection)
 
-    # #CHECKING INPUT REGIONS FOR FORMATTING
-    # print('CHECKING INPUT TO MAKE SURE EACH REGION HAS A UNIQUE IDENTIFIER')
-    # checkRefCollection(referenceCollection) #makes sure that all input regions have a unique ID
-
-    # #NOW STITCH REGIONS
-    # print('STITCHING REGIONS TOGETHER')
-    # stitchedCollection,debugOutput = regionStitching(inputGFFFile,stitchWindow,tssWindow,annotFile,removeTSS)
+    #Stitching regions together
+    if args.verbose:
+        print("Stitching regions together")
+    stitchedCollection, debugOutput = regionStitching(referenceCollection, int(args.stitch), int(args.tss), startDict, bool(int(args.tss)))
 
     
     # #NOW MAKE A STITCHED COLLECTION GFF
