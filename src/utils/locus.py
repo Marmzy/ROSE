@@ -15,7 +15,7 @@ class Locus:
         sense: str,
         ID: str = ""
     ) -> None:
-        """_summary_
+        """Create locus region object
 
         Args:
             chr (str): Chromosome name
@@ -237,16 +237,22 @@ class LocusCollection:
         
     def append(
         self,
-        new
+        new: Locus
     ) -> None:
+        """Add new locus to collection
+
+        Args:
+            new (Locus): Locus to add
+        """
+
         self.__addLocus(new)
 
-    def extend(
-        self,
-        newList
-    ) -> None:
-        for lcs in newList:
-            self.__addLocus(lcs)
+    # def extend(
+    #     self,
+    #     newList
+    # ) -> None:
+    #     for lcs in newList:
+    #         self.__addLocus(lcs)
 
     def remove(
         self,
@@ -278,11 +284,6 @@ class LocusCollection:
             for sense in senseList:
                 self._chrToCoordToLoci[old._chr+sense][k].remove(old)
 
-    def getWindowSize(
-        self
-    ):
-        return self._winSize
-
     def getLoci(
         self
     ) -> TypedDict:
@@ -294,15 +295,15 @@ class LocusCollection:
 
         return self._loci.keys()
 
-    def getChrList(
-        self
-    ):
-        # i need to remove the strand info from the chromosome keys and make
-        # them non-redundant.
-        tempKeys = dict()
-        for k in self.__chrToCoordToLoci.keys():
-            tempKeys[k[:-1]] = None
-        return tempKeys.keys()
+    # def getChrList(
+    #     self
+    # ):
+    #     # i need to remove the strand info from the chromosome keys and make
+    #     # them non-redundant.
+    #     tempKeys = dict()
+    #     for k in self.__chrToCoordToLoci.keys():
+    #         tempKeys[k[:-1]] = None
+    #     return tempKeys.keys()
             
     def __subsetHelper(
         self,
@@ -373,23 +374,23 @@ class LocusCollection:
 
         return realMatches.keys()
 
-    # sense can be 'sense' (default), 'antisense', or 'both'
-    # returns all members of the collection that are contained by the locus
-    def getContained(
-        self,
-        locus,
-        sense='sense'
-    ):
-        matches = self.__subsetHelper(locus,sense)
-        ### now, get rid of the ones that don't really overlap
-        realMatches = dict()
-        if sense=='sense' or sense=='both':
-            for i in filter(lambda lcs: locus.contains(lcs), matches):
-                realMatches[i] = None
-        if sense=='antisense' or sense=='both':
-            for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
-                realMatches[i] = None
-        return realMatches.keys()
+    # # sense can be 'sense' (default), 'antisense', or 'both'
+    # # returns all members of the collection that are contained by the locus
+    # def getContained(
+    #     self,
+    #     locus,
+    #     sense='sense'
+    # ):
+    #     matches = self.__subsetHelper(locus,sense)
+    #     ### now, get rid of the ones that don't really overlap
+    #     realMatches = dict()
+    #     if sense=='sense' or sense=='both':
+    #         for i in filter(lambda lcs: locus.contains(lcs), matches):
+    #             realMatches[i] = None
+    #     if sense=='antisense' or sense=='both':
+    #         for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
+    #             realMatches[i] = None
+    #     return realMatches.keys()
 
     def getContainers(
         self,
@@ -492,6 +493,24 @@ def gffToLocusCollection(
         raise ValueError("Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry")
 
     return LocusCollection(lociList, 500)
+
+
+def locusCollectionToGFF(
+    locusCollection: LocusCollection
+) -> pd.DataFrame:
+    """Create .gff3 file from stitched enhancer loci collection
+
+    Args:
+        locusCollection (LocusCollection): Stitched enhancer loci collection
+
+    Returns:
+        pd.DataFrame: .gff3 formatted dataframe
+    """
+
+    lociList = locusCollection.getLoci()
+    gff_df = pd.DataFrame([(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start, locus._end, ".", locus._sense, ".", locus._ID) for locus in lociList])
+
+    return gff_df
 
 
 def makeTSSLocus(

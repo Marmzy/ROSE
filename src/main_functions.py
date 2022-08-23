@@ -77,9 +77,8 @@ def regionStitching(
     #Create a LocusCollection of stitched
     stitchedCollection = boundCollection.stitchCollection(stitchWindow, "both")
 
+    #Remove stitched enhancer loci that overlap with 2+ TSS
     if removeTSS:
-        #now replace any stitched region that overlap 2 distinct genes
-        #with the original loci that were there
 
         #Initialising variables
         fixedLoci = []
@@ -109,7 +108,7 @@ def regionStitching(
                 fixedLoci.append(stitchedLocus)
 
         print(f"Removed {removeTicker} stitched loci because they overlapped with multiple TSSs")
-        print(f"Added back {originalTicker} original enhancer loci")
+        print(f"Added back {originalTicker} original enhancer loci\n")
         fixedCollection = LocusCollection(fixedLoci, 50)
         return fixedCollection, debugOutput
     else:

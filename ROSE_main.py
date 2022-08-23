@@ -9,14 +9,14 @@ CONTACT: youngcomputation@wi.mit.edu
 '''
 
 import argparse
+import pandas as pd
 
 from pathlib import Path
 from src.main_functions import regionStitching
 from src.utils.annotation import makeStartDict
 from src.utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
 from src.utils.file_helper import get_path, check_file, check_path
-from src.utils.locus import gffToLocusCollection
-from typing import Any, Dict
+from src.utils.locus import gffToLocusCollection, locusCollectionToGFF
 
 def str2bool(
     v: str
@@ -55,7 +55,7 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument('-g', '--genome', type=str, help='Genome build (MM10, MM9, MM8, HG18, HG19, HG38)')
     parser.add_argument('-i', '--input', type=str, help='File (.bed, .gff or .gtf) containing binding sites to make enhancers')
     parser.add_argument('-o', '--output', type=str, help='Output directory name')
-    parser.add_argument('-r', '--rankby',  type=str, help='File (.bam) to rank enhancer by')
+    parser.add_argument('-r', '--rankby',  type=str, help='File (.bam) to rank enhancers by')
 
     #Optional arguments
     parser.add_argument('-b', '--bams', nargs='*', help="Comma separated list of additional files (.bam) to map to")
@@ -89,7 +89,7 @@ def main():
     path = get_path()
 
     #Initialising variables
-    debug = False
+    # debug = False
     genomeDict = {
         "HG18": Path(path, "data", "annotation", "hg18_refseq.ucsc"),
         "HG19": Path(path, "data", "annotation", "hg19_refseq.ucsc"),
@@ -104,6 +104,12 @@ def main():
         bamFileList = [args.rankby, args.control]
     else:
         bamFileList = [args.rankby]
+
+    if bool(int(args.tss)):
+        suffix = "_TSS_distal"
+    else:
+        suffix = ""
+
     # if options.bams:
     #     bamFileList += options.bams.split(',')
     #     bamFileLIst = ROSE_utils.uniquify(bamFileList)
@@ -141,81 +147,62 @@ def main():
     else:
         raise ValueError("Input file must be a .bed, .gtf, .gff or gff3 file")
 
-    #Setting the bound region file to define enhancers
+    #Using the .gff3 file to define enhancers
     if args.verbose:
         print(f"Using {inputGFFFile} as the input .gff file\n")
     inputName = str(Path(inputGFFFile).stem)
 
     #Making the start dict
-    # if args.verbose:
-    #     print("Making the start dict")
     startDict = makeStartDict(check_file(str(genomeDict[args.genome.upper()])))
 
-    #Loading int the bound region reference collection
+    #Loading enhancers as loci collection object
     referenceCollection = gffToLocusCollection(check_file(inputGFFFile))
-
-    # #Checking input regions for formatting  ->  delete as this check is done as part of gffToLocusCollection
-    # if args.verbose:
-    #     print("Checking input to make sure each region has a unique identifier")
-    # checkRefCollection(referenceCollection)
 
     #Stitching regions together
     if args.verbose:
         print("Stitching regions together")
     stitchedCollection, debugOutput = regionStitching(referenceCollection, int(args.stitch), int(args.tss), startDict, bool(int(args.tss)))
 
+    #Create a gff3 dataframe from the stitched enhancers loci collection
+    if args.verbose:
+        print("Making GFF from stitched collection")
+    stitchedGFF = locusCollectionToGFF(stitchedCollection)
     
-    # #NOW MAKE A STITCHED COLLECTION GFF
-    # print('MAKING GFF FROM STITCHED COLLECTION')
-    # stitchedGFF=ROSE_utils.locusCollectionToGFF(stitchedCollection)
-    
-    # if not removeTSS:
-    #     stitchedGFFFile = '%s%s_%sKB_STITCHED.gff' % (gffFolder,inputName,stitchWindow/1000)
-    #     stitchedGFFName = '%s_%sKB_STITCHED' % (inputName,stitchWindow/1000)
-    #     debugOutFile = '%s%s_%sKB_STITCHED.debug' % (gffFolder,inputName,stitchWindow/1000)
-    # else:
-    #     stitchedGFFFile = '%s%s_%sKB_STITCHED_TSS_DISTAL.gff' % (gffFolder,inputName,stitchWindow/1000)
-    #     stitchedGFFName = '%s_%sKB_STITCHED_TSS_DISTAL' % (inputName,stitchWindow/1000)
-    #     debugOutFile = '%s%s_%sKB_STITCHED_TSS_DISTAL.debug' % (gffFolder,inputName,stitchWindow/1000)
+    #Defining output file names
+    stitchedGFFName = f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}"
+    stitchedGFFFile = Path(Path(gffFolder), f"{stitchedGFFName}.gff3")
+    debugOutFile = Path(Path(gffFolder), f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug")
+    outputFile1 = Path(output, f"{stitchedGFFName}_enhancer_region_map.txt")
 
-    # #WRITING DEBUG OUTPUT TO DISK
-        
+    #Outputting the gff3 dataframe
+    with open(stitchedGFFFile, "w") as f_out:
+        f_out.write("##gff-version 3\n")
+        f_out.write("##source-version ROSE\n")
+        stitchedGFF.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
+
+    #Outputting the debug data
     # if debug:
-    #     print('WRITING DEBUG OUTPUT TO DISK AS %s' % (debugOutFile))
-    #     ROSE_utils.unParseTable(debugOutput,debugOutFile,'\t')
-
-    # #WRITE THE GFF TO DISK
-    # print('WRITING STITCHED GFF TO DISK AS %s' % (stitchedGFFFile))
-    # ROSE_utils.unParseTable(stitchedGFF,stitchedGFFFile,'\t')
-
-
-
-    # #SETTING UP THE OVERALL OUTPUT FILE
-    # outputFile1 = outFolder + stitchedGFFName + '_ENHANCER_REGION_MAP.txt'
-
-    # print('OUTPUT WILL BE WRITTEN TO  %s' % (outputFile1))
-    
-    # #MAPPING TO THE NON STITCHED (ORIGINAL GFF)
-    # #MAPPING TO THE STITCHED GFF
-
+    #     print(f"Writing debug output to {debugOutFile}")
+    #     pd.DataFrame(debugOutput).to_csv(debugOutFile, sep="\t", header=False, index=False)
 
     # # bin for bam mapping
-    # nBin =1
+    # nBin = 1
 
-    # #IMPORTANT
-    # #CHANGE cmd1 and cmd2 TO PARALLELIZE OUTPUT FOR BATCH SUBMISSION
-    # #e.g. if using LSF cmd1 = "bsub python bamToGFF.py -f 1 -e 200 -r -m %s -b %s -i %s -o %s" % (nBin,bamFile,stitchedGFFFile,mappedOut1)
+    # mappedOut1 = Path(Path(mappedFolder), f"{stitchedGFFName}_{str(Path(bamFileList[0]).name)}_mapped.gff3")
+    # mappedOut2 = Path(Path(mappedFolder), f"{inputGFFFile}_{str(Path(bamFileList[1]).name)}_mapped.gff3")
 
     # for bamFile in bamFileList:
 
-    #     bamFileName = bamFile.split('/')[-1]
+    #     print(bamFile)
+    #     bamFileName = str(Path(bamFile).name)
+    #     print(bamFileName)
 
     #     #MAPPING TO THE STITCHED GFF
-    #     mappedOut1 ='%s%s_%s_MAPPED.gff' % (mappedFolder,stitchedGFFName,bamFileName)
-    #     #WILL TRY TO RUN AS A BACKGROUND PROCESS. BATCH SUBMIT THIS LINE TO IMPROVE SPEED
-    #     cmd1 = "python ROSE_bamToGFF.py -f 1 -e 200 -r -m %s -b %s -i %s -o %s &" % (nBin,bamFile,stitchedGFFFile,mappedOut1)
-    #     print(cmd1)
-    #     os.system(cmd1)
+    #     mappedOut1 = Path(Path(mappedFolder), f"{stitchedGFFName}_{bamFileName}_mapped.gff3")
+
+        #WILL TRY TO RUN AS A BACKGROUND PROCESS. BATCH SUBMIT THIS LINE TO IMPROVE SPEED
+        # cmd1 = "python ROSE_bamToGFF.py -f 1 -e 200 -r -m %s -b %s -i %s -o %s &" % (nBin, bamFile, stitchedGFFFile, mappedOut1)
+        # main_bam(1, )
 
     #     #MAPPING TO THE ORIGINAL GFF
     #     mappedOut2 ='%s%s_%s_MAPPED.gff' % (mappedFolder,inputName,bamFileName)
