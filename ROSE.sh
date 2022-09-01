@@ -24,12 +24,12 @@ function usage(){
     echo " #Additional arguments for ROSE_bamToGFF.sh"
     echo " -n, --sense      Strand to map to (default='both')"
     echo " -f, --floor      Read floor threshold necessary to count towards density (default=1)"
-    echo " -e, --extension  Extends reads by n bp (default=200)"
-    echo " -p, --rpm        Normalizes density to reads per million (rpm)"
+    echo " -x, --extension  Extends reads by n bp (default=200)"
+    echo " -p, --rpm        Normalizes density to reads per million (rpm) (default=true)"
     echo " -m, --matrix     Variable bin sized matrix (default=1)"
-    echo " -v, --verbose    Print verbose messages"
+    echo " -v, --verbose    Print verbose messages (default=true)"
     echo ""
-    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1_1000.gff -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -o output -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -s both -e 200 -r True -m 1 -v true"
+    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -o output -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
     exit 1
 }
 
@@ -48,7 +48,7 @@ while [[ "$#" -gt 0 ]]; do
         -t|--tss) TSS="$2"; shift ;;
         -n|--sense) SENSE="$2"; shift ;;
         -f|--floor) FLOOR="$2"; shift ;;
-        -e|--extension) EXTENSION="$2"; shift ;;
+        -x|--extension) EXTENSION="$2"; shift ;;
         -p|--rpm) RPM="$2"; shift ;;
         -m|--matrix) MATRIX="$2"; shift ;;
     esac
@@ -65,11 +65,12 @@ if [ -z "$STITCH" ]; then VALUE_S=12500; else VALUE_S=$STITCH; fi;
 if [ -z "$TSS" ]; then VALUE_T=0; else VALUE_T=$TSS; fi;
 if [ -z "$SENSE" ]; then VALUE_N="both"; else VALUE_N=$SENSE; fi;
 if [ -z "$FLOOR" ]; then VALUE_F=1; else VALUE_F=$FLOOR; fi;
-if [ -z "$EXTENSION" ]; then VALUE_E=200; else VALUE_E=$EXTENSION; fi;
+if [ -z "$EXTENSION" ]; then VALUE_X=200; else VALUE_X=$EXTENSION; fi;
 if [ -z "$RPM" ]; then VALUE_P=true; else VALUE_P=$RPM; fi;
 if [ -z "$MATRIX" ]; then VALUE_M=1; else VALUE_M=$MATRIX; fi;
 
-#Create stitched enhancers .gff3 file
+
+# #Create stitched enhancers .gff3 file
 python3 ROSE_main.py -g hg18 -i ./data/HG18_MM1S_MED1.gff -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -o output -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -v true
 python3 ROSE_main.py -g ${VALUE_G} -i ${VALUE_I} -r ${VALUE_R} -o ${VALUE_O} -c ${VALUE_C} -s ${VALUE_S} -t ${VALUE_T} -v ${VALUE_V}
 
@@ -83,9 +84,9 @@ OUTRANK=${PWD}/${VALUE_O}/mappedGFF/${STITCH_NAME::-5}_$(basename ${VALUE_R})_ma
 OUTCONT=${PWD}/${VALUE_O}/mappedGFF/${CONTROL_NAME::-5}_$(basename ${VALUE_C})_mapped.gff3
 
 #Mapping reads to stitched enhancers gff
-bash ROSE_bamToGFF.sh -b $VALUE_R -i $STITCHED -o $OUTRANK -s $VALUE_N -f $VALUE_F -e $VALUE_E -r $VALUE_P -m $VALUE_M -v $VALUE_V
+bash ROSE_bamToGFF.sh -b $VALUE_R -i $STITCHED -o $OUTRANK -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
 if [ "$VALUE_C" ]; then
-    bash ROSE_bamToGFF.sh -b $VALUE_C -i $VALUE_I -o $OUTCONT -s $VALUE_N -f $VALUE_F -e $VALUE_E -r $VALUE_P -m $VALUE_M -v $VALUE_V
+    bash ROSE_bamToGFF.sh -b $VALUE_C -i $VALUE_I -o $OUTCONT -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
 fi
 
 #Write something descriptive here

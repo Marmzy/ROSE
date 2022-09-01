@@ -52,3 +52,24 @@ if [ -z "$FLOOR" ]; then VALUE_F=1; else VALUE_F=$FLOOR; fi;
 if [ -z "$EXTENSION" ]; then VALUE_E=200; else VALUE_E=$EXTENSION; fi;
 if [ -z "$RPM" ]; then VALUE_R=true; else VALUE_R=$RPM; fi;
 if [ -z "$MATRIX" ]; then VALUE_M=1; else VALUE_M=$MATRIX; fi;
+
+#Verifying arguments' content
+if [ -z "$(find $(dirname ${VALUE_B}) -name $(basename ${VALUE_B}).bai)" ]; then usage "No associated .bai file found with .bam file"; fi;
+if [ -z $(echo "+", "-", ".", "both" | grep -wo $VALUE_S) ]; then usage "Sense flag argument must be '+', '-', '.' or 'both'"; fi;
+
+
+#Get total number of mapped alignments
+if $VALUE_R; then
+    MMR=$(samtools flagstat $VALUE_B | grep "mapped (" | cut -d" " -f 1)
+    # MMR=17414095
+else
+    MMR=1
+fi
+
+if $VALUE_V; then
+    echo "Using a MMR value of $MMR"
+fi
+
+#Add genome file option for parse args???
+#Extend stitched enhancers regions
+bedtools slop -i $VALUE_I -g "/home/calvin/Projects/ROSE/data/human.hg18.genome" -b $VALUE_E > "$(dirname $(dirname ${VALUE_I}))/mappedGFF/$(basename ${VALUE_I::-5})_extended.gff3"
