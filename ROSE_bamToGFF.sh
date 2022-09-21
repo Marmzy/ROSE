@@ -71,5 +71,38 @@ if $VALUE_V; then
 fi
 
 #Add genome file option for parse args???
-#Extend stitched enhancers regions
-bedtools slop -i $VALUE_I -g "/home/calvin/Projects/ROSE/data/human.hg18.genome" -b $VALUE_E > "$(dirname $(dirname ${VALUE_I}))/mappedGFF/$(basename ${VALUE_I::-5})_extended.gff3"
+#Preparing output file names
+EXTENDED_GFF=$(dirname $(dirname ${VALUE_I}))/mappedGFF/$(basename ${VALUE_I::-5})_extended.gff3
+EXTENDED_BED=$(dirname $(dirname ${VALUE_I}))/mappedGFF/$(basename ${VALUE_I::-5})_extended.bed
+# EXTENDED_SAM=$(dirname $(dirname ${VALUE_I}))/mappedGFF/$(basename ${VALUE_I::-5})_extended.sam
+
+#Extend stitched enhancers regions gff file and convert it to .bed format
+bedtools slop -i $VALUE_I -g "/home/calvin/Projects/ROSE/data/human.hg18.genome" -b $VALUE_E > $EXTENDED_GFF
+gff2bed < $EXTENDED_GFF > $EXTENDED_BED
+
+#Find reads mapped in stitched enhancer loci
+mkdir -p $(dirname $(dirname ${VALUE_I}))/mappedGFF/regions
+while read line; do
+    REGION=$(echo $line | awk '{print $1":"$2+1"-"$3}')
+    samtools view $VALUE_B $REGION | awk '$6 !~ /N/ {print}' > $(dirname $(dirname ${VALUE_I}))/mappedGFF/regions/${REGION}.sam
+done < $EXTENDED_BED
+
+#????
+python3 ROSE_bamToGFF.py -b $VALUE_B -i $VALUE_I -r $(dirname $(dirname ${VALUE_I}))/mappedGFF/regions -s $VALUE_S -f $VALUE_F -e $VALUE_E -m $MMR -x $VALUE_M -v
+
+
+
+
+
+
+
+#Find reads mapped in stitched enhancer loci
+# samtools view -L $EXTENDED_BED $VALUE_B | awk '$6 !~ /N/ {print}' > $EXTENDED_SAM                            <- replace with loop and output each match to new file?
+#Split output file per chromosome
+# mkdir -p $(dirname $(dirname ${VALUE_I}))/mappedGFF/chromosomes
+# CHROMS=$(samtools idxstats ${VALUE_B} | cut -f1 | grep -v '*')
+# for chr in ${CHROMS[@]}; do
+#     CHR_FILE=$(dirname ${EXTENDED_SAM})/chromosomes/$(basename ${EXTENDED_SAM::-4}_${chr}.sam)
+#     awk -v chr="$chr" -v out="$CHR_FILE" '$3==chr {print > out}' $EXTENDED_SAM
+# done
+# python3 ROSE_bamToGFF.py -i $VALUE_I -c $(dirname $(dirname ${VALUE_I}))/mappedGFF/chromosomes -s $VALUE_S -f $VALUE_F -e $VALUE_E -m $MMR -x $VALUE_M -v

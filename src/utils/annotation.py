@@ -31,6 +31,25 @@ from typing import Dict, List, Tuple
 #     return refseqTable, refseqDict
 
 
+def get_strand(
+    flag: int
+) -> str:
+    """Return strand based on FLAG
+
+    Args:
+        flag (int): .sam file FLAG field
+
+    Returns:
+        str: Strand info
+    """
+
+    #Other flags are possible, include as an update later?
+    if flag == 16:
+        return "-"
+    else:
+        return "+"
+
+
 def makeStartDict(
     annotFile: str
 ) -> pd.core.frame.DataFrame:

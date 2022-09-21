@@ -31,16 +31,27 @@ class Locus:
         self._end = end
         self._ID = ID
 
-    def len(
-        self
-    ) -> int:
-        """Calculate locus length
+    def contains(
+        self,
+        otherLocus: Locus
+    ) -> bool:
+        """Check if a locus lies completely within an other locus
+
+        Args:
+            otherLocus (Locus): Locus to compare with
 
         Returns:
-            int: Length of the locus
+            bool: Bool delineating if one locus lies entirely within another
         """
 
-        return self._end - self._start + 1
+        if self._chr != otherLocus._chr:
+            return False
+        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
+            return False
+        elif self._start > otherLocus._start or otherLocus._end > self._end:
+            return False
+        else:
+            return True
 
     def getAntisenseLocus(
         self
@@ -79,39 +90,6 @@ class Locus:
         else:
             return True
         
-    def contains(
-        self,
-        otherLocus: Locus
-    ) -> bool:
-        """Check if a locus lies completely within an other locus
-
-        Args:
-            otherLocus (Locus): Locus to compare with
-
-        Returns:
-            bool: Bool delineating if one locus lies entirely within another
-        """
-
-        if self._chr != otherLocus._chr:
-            return False
-        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
-            return False
-        elif self._start > otherLocus._start or otherLocus._end > self._end:
-            return False
-        else:
-            return True
-
-    def __hash__(
-        self
-    ) -> int:
-        """Create hash for tracking entries
-
-        Returns:
-            int: Hash ID
-        """
-
-        return self._start + self._end
-        
     def __eq__(
         self,
         other: Locus
@@ -136,6 +114,28 @@ class Locus:
         if self._sense != other._sense:
             return False
         return True
+
+    def __hash__(
+        self
+    ) -> int:
+        """Create hash for tracking entries
+
+        Returns:
+            int: Hash ID
+        """
+
+        return self._start + self._end
+
+    def __len__(
+        self
+    ) -> int:
+        """Calculate locus length
+
+        Returns:
+            int: Length of the locus
+        """
+
+        return self._end - self._start + 1
 
     def __ne__(
         self,
