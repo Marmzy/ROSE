@@ -21,7 +21,7 @@ function usage(){
     echo " -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)"
     echo " -v, --verbose    Print verbose messages"
     echo ""
-    echo " #Additional arguments for ROSE_bamToGFF.sh"
+    echo " #Additional arguments for ROSE_bamToGFF.py"
     echo " -n, --sense      Strand to map to (default='both')"
     echo " -f, --floor      Read floor threshold necessary to count towards density (default=1)"
     echo " -x, --extension  Extends reads by n bp (default=200)"
@@ -29,7 +29,7 @@ function usage(){
     echo " -m, --matrix     Variable bin sized matrix (default=1)"
     echo " -v, --verbose    Print verbose messages (default=true)"
     echo ""
-    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -o output -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
+    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
     exit 1
 }
 
@@ -70,13 +70,11 @@ if [ -z "$RPM" ]; then VALUE_P=true; else VALUE_P=$RPM; fi;
 if [ -z "$MATRIX" ]; then VALUE_M=1; else VALUE_M=$MATRIX; fi;
 
 
-# #Create stitched enhancers .gff3 file
-python3 ROSE_main.py -g hg18 -i ./data/HG18_MM1S_MED1.gff -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -o output -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -v true
+#Create stitched enhancers .gff3 file
 python3 ROSE_main.py -g ${VALUE_G} -i ${VALUE_I} -r ${VALUE_R} -o ${VALUE_O} -c ${VALUE_C} -s ${VALUE_S} -t ${VALUE_T} -v ${VALUE_V}
 
 #Initialising variable names
-STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_distal.gff3")
-
+STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_distal.gff3" | head -n 1)
 STITCH_NAME=$(basename ${STITCHED})
 CONTROL_NAME=$(basename ${VALUE_I})
 
@@ -84,9 +82,9 @@ OUTRANK=${PWD}/${VALUE_O}/mappedGFF/${STITCH_NAME::-5}_$(basename ${VALUE_R})_ma
 OUTCONT=${PWD}/${VALUE_O}/mappedGFF/${CONTROL_NAME::-5}_$(basename ${VALUE_C})_mapped.gff3
 
 #Mapping reads to stitched enhancers gff
-bash ROSE_bamToGFF.sh -b $VALUE_R -i $STITCHED -o $OUTRANK -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+python3 ROSE_bamToGFF.py -b $VALUE_R -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
 if [ "$VALUE_C" ]; then
-    bash ROSE_bamToGFF.sh -b $VALUE_C -i $VALUE_I -o $OUTCONT -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+    python3 ROSE_bamToGFF.py -b $VALUE_C -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
 fi
 
 #Write something descriptive here

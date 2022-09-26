@@ -234,6 +234,49 @@ class LocusCollection:
         """
 
         return len(self._loci)
+
+    def __subsetHelper(
+        self,
+        locus: Locus,
+        sense: str
+    ) -> TypedDict:
+        """Fetch list of loci, given input
+
+        Args:
+            locus (Locus): Enhancer locus object
+            sense (str): Strand on which the locus is located
+
+        Raises:
+            ValueError: If sense value is impossible
+
+        Returns:
+            TypedDict[Locus]: Subsetted list of loci
+        """
+
+        #Initialising variables
+        matches = dict()
+        senses = ["+", "-"]
+
+        #Create filter to select enhancer loci
+        if locus._sense == "." or sense == "both":
+            lamb = lambda s: True
+        elif sense == "sense":
+            lamb = lambda s: s == locus._sense
+        elif sense == "antisense":
+            lamb = lambda s: s != locus._sense
+        else:
+            raise ValueError(f"Inappropriate sense value: '{sense}'")
+
+        #Select enhancer loci based on filter
+        for s in filter(lamb, senses):
+            chrKey = locus._chr + s
+            if chrKey in self._chrToCoordToLoci:
+                for n in self.__getKeyRange(locus):
+                    if n in self._chrToCoordToLoci[chrKey]:     # -> remove the key range "step" in dict? -> doesn't add new info + values get replaced
+                        for lcs in self._chrToCoordToLoci[chrKey][n]:
+                            matches[lcs] = None
+
+        return matches.keys()
         
     def append(
         self,
@@ -284,6 +327,32 @@ class LocusCollection:
             for sense in senseList:
                 self._chrToCoordToLoci[old._chr+sense][k].remove(old)
 
+    def getContainers(
+        self,
+        locus: Locus,
+        sense: str = "sense"
+    ) -> TypedDict:
+        """Get TSS loci that envelop the enhancer locus
+
+        Args:
+            locus (Locus): Enhancer locus
+            sense (str, optional): TSS loci strands. Defaults to "sense".
+
+        Returns:
+            TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
+        """
+
+        #Get all loci from the TSS collection that (partly) overlap with the enhancer locus
+        matches = self.__subsetHelper(locus, sense)
+
+        #Get all TSS loci that envelop the enhancer locus
+        if sense == "sense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
+        if sense == "antisense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
+        
+        return realMatches.keys()
+
     def getLoci(
         self
     ) -> TypedDict:
@@ -304,49 +373,6 @@ class LocusCollection:
     #     for k in self.__chrToCoordToLoci.keys():
     #         tempKeys[k[:-1]] = None
     #     return tempKeys.keys()
-            
-    def __subsetHelper(
-        self,
-        locus: Locus,
-        sense: str
-    ) -> TypedDict:
-        """Fetch list of loci, given input
-
-        Args:
-            locus (Locus): Enhancer locus object
-            sense (str): Strand on which the locus is located
-
-        Raises:
-            ValueError: If sense value is impossible
-
-        Returns:
-            TypedDict[Locus]: Subsetted list of loci
-        """
-
-        #Initialising variables
-        matches = dict()
-        senses = ["+", "-"]
-
-        #Create filter to select enhancer loci
-        if locus._sense == "." or sense == "both":
-            lamb = lambda s: True
-        elif sense == "sense":
-            lamb = lambda s: s == locus._sense
-        elif sense == "antisense":
-            lamb = lambda s: s != locus._sense
-        else:
-            raise ValueError(f"Inappropriate sense value: '{sense}'")
-
-        #Select enhancer loci based on filter
-        for s in filter(lamb, senses):
-            chrKey = locus._chr + s
-            if chrKey in self._chrToCoordToLoci:
-                for n in self.__getKeyRange(locus):
-                    if n in self._chrToCoordToLoci[chrKey]:     # -> remove the key range "step" in dict? -> doesn't add new info + values get replaced
-                        for lcs in self._chrToCoordToLoci[chrKey][n]:
-                            matches[lcs] = None
-
-        return matches.keys()
         
     def getOverlap(
         self,
@@ -391,32 +417,6 @@ class LocusCollection:
     #         for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
     #             realMatches[i] = None
     #     return realMatches.keys()
-
-    def getContainers(
-        self,
-        locus: Locus,
-        sense: str = "sense"
-    ) -> TypedDict:
-        """Get TSS loci that envelop the enhancer locus
-
-        Args:
-            locus (Locus): Enhancer locus
-            sense (str, optional): TSS loci strands. Defaults to "sense".
-
-        Returns:
-            TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
-        """
-
-        #Get all loci from the TSS collection that (partly) overlap with the enhancer locus
-        matches = self.__subsetHelper(locus, sense)
-
-        #Get all TSS loci that envelop the enhancer locus
-        if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
-        if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
-        
-        return realMatches.keys()
 
     def stitchCollection(
         self,

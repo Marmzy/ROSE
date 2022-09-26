@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
-import numpy as np
 import pandas as pd
+import re
 
-from collections import defaultdict
+from collections import Counter
 from pathlib import Path
-from src.utils.annotation import get_strand
-from src.utils.file_helper import check_file, check_path
+from src.utils.file_helper import check_file
 from src.utils.locus import Locus
+from src.utils.bam import Bam
 
 
 def str2bool(
@@ -46,14 +46,13 @@ def parseArgs() -> argparse.Namespace:
     #Required arguments
     parser.add_argument("-b", "--bam", type=str, help=".bam file")
     parser.add_argument("-i", "--input", type=str, help="Stitched enhancer loci .gff3 file")
-    parser.add_argument("-r", "--region",  type=str, help="Regions directory path")
-    parser.add_argument("-m", "--mmr", type=int, help="Total number of mapped reads")
 
     #Optional arguments
-    parser.add_argument("-e", "--extension", type=int, nargs="?", default=200, help="Extend reads by n bp (default: 200)")
-    parser.add_argument("-f", "--floor", type=int, nargs="?", default=1, help="Read floor threshold necessary to count towards density (default: 1)")
     parser.add_argument("-s", "--sense", type=str, nargs="?", default="both", help="Strand to map to (default: 'both')")
-    parser.add_argument("-x", "--matrix", type=int, nargs="?", default=1, help="Variable bin sized matrix (default: 1)")
+    parser.add_argument("-f", "--floor", type=int, nargs="?", default=1, help="Read floor threshold necessary to count towards density (default: 1)")
+    parser.add_argument("-e", "--extension", type=int, nargs="?", default=200, help="Extend reads by n bp (default: 200)")
+    parser.add_argument("-r", "--rpm", type=str2bool, nargs="?", help="Normalize density to reads per million")
+    parser.add_argument("-m", "--matrix", type=int, nargs="?", default=1, help="Variable bin sized matrix (default: 1)")
     parser.add_argument("-v", "--verbose", type=str2bool, nargs="?", const=True, default=False, help="Print verbose messages")
 
 
@@ -63,8 +62,14 @@ def parseArgs() -> argparse.Namespace:
     print("Called with args:")
     print(f"{args}\n")
 
-    #Ensuring that argument files exist
+    #Ensuring that files exist
+    check_file(args.bam)
     check_file(args.input)
+    check_file(f"{args.bam}.bai")
+
+    #Ensuring sense argument makes sense
+    if args.sense not in ["+", "-", ".", "both"]:
+        raise ValueError("Argument -s/--sense value must be '+', '-', '.' or 'both'")
 
     return args
         
@@ -75,34 +80,44 @@ def main() -> None:
     args = parseArgs()
 
     #Initialising variables
-    extendedReads = []
     newGFF = []
 
-    if args.mmr != 1:
-        mmr = round(args.mmr/1000000, 4)
+    #Create Bam class
+    bam = Bam(args.bam)
+
+    if args.rpm:
+        mmr = round(bam.getTotalReads()/1000000, 4)
     else:
-        mmr = args.mmr
+        mmr = 1
+
+    if args.verbose:
+        print(f"MMR value: {mmr}")
+    
+    #Check chromosome naming convention
+    bam.checkChrStatus()
 
     #Reading the gff3 file as a dataframe
     gff_df = pd.read_csv(args.input, sep="\t", header=None, comment="#")
-    
+
     #Loop over stitched enhancer loci
     for row in zip(*gff_df.to_dict("list").values()):
 
-        #Create locus from stitched enhancer locus
+        #Create locus object from stitched enhancer locus
+        if not bam._chr:
+            row[0] = re.sub("chr", "", row[0])
         gffLocus = Locus(row[0], row[3], row[4], row[6], row[8])
 
-        #Get reads that mapped to the stitched anhancer locus
-        sam_file = str(Path(args.region, f"{row[0]}:{row[3]-args.extension}-{row[4]+args.extension}.sam"))
-        mini_df = pd.read_csv(sam_file, sep="\t", header=None)
+        #Get reads that lie in the extended stitched enhancer locus region
+        searchLocus = Locus(gffLocus._chr, gffLocus._start-args.extension, gffLocus._end+args.extension, gffLocus._sense, gffLocus._ID)
+        reads = bam.getReadsLocus(searchLocus)
 
-        #Loop over mapped reads
-        for read in zip(*mini_df.to_dict("list").values()):
-            if get_strand(read[1]) == "+":
-                #Read length does not account for gaps -> add in later update
-                locus = Locus(read[2], read[3], read[3]+len(read[9])+args.extension, get_strand(read[1]))
-            else:
-                locus = Locus(read[2], read[3]-args.extension, read[3]+len(read[9]), get_strand(read[1]))
+        #Extend reads
+        extendedReads = []
+        for locus in reads:
+            if locus._sense == "+":
+                locus = Locus(locus._chr, locus._start, locus._end+args.extension, locus._sense, locus._ID)
+            if locus._sense == "-":
+                locus = Locus(locus._chr, locus._start-args.extension, locus._end, locus._sense, locus._ID)
             extendedReads.append(locus)
 
         #Define sense and antisense reads
@@ -115,11 +130,9 @@ def main() -> None:
 
         #Create dictionary of number of reads mapped at each genomic position 
         if args.sense == "+" or args.sense == "both" or args.sense == ".":
-            sense_unique, sense_counts = np.unique(np.concatenate([np.arange(read._start, read._end+1) for read in senseReads]), return_counts=True)
-            senseHash = defaultdict(int, zip(sense_unique, sense_counts))
+            senseHash = Counter([i for read in senseReads for i in range(read._start, read._end+1)])
         if args.sense == "-" or args.sense == "both" or args.sense == ".":
-            anti_unique, anti_counts = np.unique(np.concatenate([np.arange(read._start, read._end+1) for read in antiReads]), return_counts=True)
-            antiHash = defaultdict(int, zip(anti_unique, anti_counts))
+            antiHash = Counter([i for read in antiReads for i in range(read._start, read._end+1)])
 
         #Remove positions in hash with less than or equal 'floor' reads mapped
         #and positions outside the stitched enhancer locus
@@ -128,11 +141,6 @@ def main() -> None:
         #Creating bin sizes for calculating read density in stitched enhancer locus
         binSize = (len(gffLocus)-1) / int(args.matrix)
         nBins = int(args.matrix)
-
-        # #Unnecessary check?
-        # if not binSize:
-        #     clusterLine += ["NA"]*int(args.matrix)
-        #     newGFF.append(clusterLine)
 
         clusterLine = [gffLocus._ID, str(gffLocus)]
 
@@ -156,9 +164,9 @@ def main() -> None:
                 i = i - binSize
         newGFF.append(clusterLine)
 
-    #
+    #Outputting per-bin read density
     out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(args.bam).name)}" for n in range(1, int(args.matrix)+1)])
-    gff_name = check_path(Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt"))
+    gff_name = Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt")
     out_df.to_csv(gff_name, sep="\t", index=False)
 
                 

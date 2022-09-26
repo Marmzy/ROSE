@@ -2,8 +2,6 @@
 
 import pandas as pd
 
-from typing import Dict, List, Tuple
-
 
 # def importRefseq(
 #     refseqFile: str
@@ -29,25 +27,6 @@ from typing import Dict, List, Tuple
 #             refseqDict[val] = [key]
 
 #     return refseqTable, refseqDict
-
-
-def get_strand(
-    flag: int
-) -> str:
-    """Return strand based on FLAG
-
-    Args:
-        flag (int): .sam file FLAG field
-
-    Returns:
-        str: Strand info
-    """
-
-    #Other flags are possible, include as an update later?
-    if flag == 16:
-        return "-"
-    else:
-        return "+"
 
 
 def makeStartDict(

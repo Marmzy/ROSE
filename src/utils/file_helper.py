@@ -20,7 +20,7 @@ def check_file(
         str: Original file name
     """
 
-    if not os.path.isfile(filename):
+    if not Path(filename).is_file():
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
 
     return filename
