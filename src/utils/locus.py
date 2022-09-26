@@ -15,7 +15,7 @@ class Locus:
         sense: str,
         ID: str = ""
     ) -> None:
-        """_summary_
+        """Create locus region object
 
         Args:
             chr (str): Chromosome name
@@ -31,16 +31,27 @@ class Locus:
         self._end = end
         self._ID = ID
 
-    def len(
-        self
-    ) -> int:
-        """Calculate locus length
+    def contains(
+        self,
+        otherLocus: Locus
+    ) -> bool:
+        """Check if a locus lies completely within an other locus
+
+        Args:
+            otherLocus (Locus): Locus to compare with
 
         Returns:
-            int: Length of the locus
+            bool: Bool delineating if one locus lies entirely within another
         """
 
-        return self._end - self._start + 1
+        if self._chr != otherLocus._chr:
+            return False
+        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
+            return False
+        elif self._start > otherLocus._start or otherLocus._end > self._end:
+            return False
+        else:
+            return True
 
     def getAntisenseLocus(
         self
@@ -79,39 +90,6 @@ class Locus:
         else:
             return True
         
-    def contains(
-        self,
-        otherLocus: Locus
-    ) -> bool:
-        """Check if a locus lies completely within an other locus
-
-        Args:
-            otherLocus (Locus): Locus to compare with
-
-        Returns:
-            bool: Bool delineating if one locus lies entirely within another
-        """
-
-        if self._chr != otherLocus._chr:
-            return False
-        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
-            return False
-        elif self._start > otherLocus._start or otherLocus._end > self._end:
-            return False
-        else:
-            return True
-
-    def __hash__(
-        self
-    ) -> int:
-        """Create hash for tracking entries
-
-        Returns:
-            int: Hash ID
-        """
-
-        return self._start + self._end
-        
     def __eq__(
         self,
         other: Locus
@@ -136,6 +114,28 @@ class Locus:
         if self._sense != other._sense:
             return False
         return True
+
+    def __hash__(
+        self
+    ) -> int:
+        """Create hash for tracking entries
+
+        Returns:
+            int: Hash ID
+        """
+
+        return self._start + self._end
+
+    def __len__(
+        self
+    ) -> int:
+        """Calculate locus length
+
+        Returns:
+            int: Length of the locus
+        """
+
+        return self._end - self._start + 1
 
     def __ne__(
         self,
@@ -234,76 +234,7 @@ class LocusCollection:
         """
 
         return len(self._loci)
-        
-    def append(
-        self,
-        new
-    ) -> None:
-        self.__addLocus(new)
 
-    def extend(
-        self,
-        newList
-    ) -> None:
-        for lcs in newList:
-            self.__addLocus(lcs)
-
-    def remove(
-        self,
-        old: Locus
-    ) -> None:
-        """Remove locus from loci the LocusCollection
-
-        Args:
-            old (Locus): Locus to remove
-
-        Raises:
-            ValueError: If locus is not in the loci collection
-        """
-
-        #Check that locus is actually present
-        if old not in self._loci.keys():
-            raise ValueError("Locus to remove is not in the collection")
-
-        #Removing the locus from the loci dictionary
-        del self._loci[old]
-
-        #Removing the locus from the KeyRange dictionary
-        if old._sense == ".":
-            senseList = ["+", "-"]
-        else:
-            senseList = [old._sense]
-
-        for k in self.__getKeyRange(old):
-            for sense in senseList:
-                self._chrToCoordToLoci[old._chr+sense][k].remove(old)
-
-    def getWindowSize(
-        self
-    ):
-        return self._winSize
-
-    def getLoci(
-        self
-    ) -> TypedDict:
-        """Get all loci in the collection
-
-        Returns:
-            TypedDict: Dict keys, with loci as keys
-        """
-
-        return self._loci.keys()
-
-    def getChrList(
-        self
-    ):
-        # i need to remove the strand info from the chromosome keys and make
-        # them non-redundant.
-        tempKeys = dict()
-        for k in self.__chrToCoordToLoci.keys():
-            tempKeys[k[:-1]] = None
-        return tempKeys.keys()
-            
     def __subsetHelper(
         self,
         locus: Locus,
@@ -347,49 +278,54 @@ class LocusCollection:
 
         return matches.keys()
         
-    def getOverlap(
+    def append(
         self,
-        locus: Locus,
-        sense: str = "sense"
-    ) -> TypedDict:
-        """Get enhancer loci that overlap with a given enhaner locus
+        new: Locus
+    ) -> None:
+        """Add new locus to collection
 
         Args:
-            locus (Locus): Locus against which overlapping loci are to be searched for
-            sense (str, optional): Locus strnd. Defaults to "sense".
-
-        Returns:
-            TypedDict: Dict keys, with overlapping loci as keys
+            new (Locus): Locus to add
         """
 
-        #Get all loci from the enhancer collection that overlap with the enhancer locus
-        matches = self.__subsetHelper(locus, sense)
+        self.__addLocus(new)
 
-        #Remove loci that don't really overlap
-        if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.overlaps(locus), matches)}
-        if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().overlaps(locus), matches)}
+    # def extend(
+    #     self,
+    #     newList
+    # ) -> None:
+    #     for lcs in newList:
+    #         self.__addLocus(lcs)
 
-        return realMatches.keys()
-
-    # sense can be 'sense' (default), 'antisense', or 'both'
-    # returns all members of the collection that are contained by the locus
-    def getContained(
+    def remove(
         self,
-        locus,
-        sense='sense'
-    ):
-        matches = self.__subsetHelper(locus,sense)
-        ### now, get rid of the ones that don't really overlap
-        realMatches = dict()
-        if sense=='sense' or sense=='both':
-            for i in filter(lambda lcs: locus.contains(lcs), matches):
-                realMatches[i] = None
-        if sense=='antisense' or sense=='both':
-            for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
-                realMatches[i] = None
-        return realMatches.keys()
+        old: Locus
+    ) -> None:
+        """Remove locus from loci the LocusCollection
+
+        Args:
+            old (Locus): Locus to remove
+
+        Raises:
+            ValueError: If locus is not in the loci collection
+        """
+
+        #Check that locus is actually present
+        if old not in self._loci.keys():
+            raise ValueError("Locus to remove is not in the collection")
+
+        #Removing the locus from the loci dictionary
+        del self._loci[old]
+
+        #Removing the locus from the KeyRange dictionary
+        if old._sense == ".":
+            senseList = ["+", "-"]
+        else:
+            senseList = [old._sense]
+
+        for k in self.__getKeyRange(old):
+            for sense in senseList:
+                self._chrToCoordToLoci[old._chr+sense][k].remove(old)
 
     def getContainers(
         self,
@@ -416,6 +352,71 @@ class LocusCollection:
             realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
         
         return realMatches.keys()
+
+    def getLoci(
+        self
+    ) -> TypedDict:
+        """Get all loci in the collection
+
+        Returns:
+            TypedDict: Dict keys, with loci as keys
+        """
+
+        return self._loci.keys()
+
+    # def getChrList(
+    #     self
+    # ):
+    #     # i need to remove the strand info from the chromosome keys and make
+    #     # them non-redundant.
+    #     tempKeys = dict()
+    #     for k in self.__chrToCoordToLoci.keys():
+    #         tempKeys[k[:-1]] = None
+    #     return tempKeys.keys()
+        
+    def getOverlap(
+        self,
+        locus: Locus,
+        sense: str = "sense"
+    ) -> TypedDict:
+        """Get enhancer loci that overlap with a given enhaner locus
+
+        Args:
+            locus (Locus): Locus against which overlapping loci are to be searched for
+            sense (str, optional): Locus strnd. Defaults to "sense".
+
+        Returns:
+            TypedDict: Dict keys, with overlapping loci as keys
+        """
+
+        #Get all loci from the enhancer collection that overlap with the enhancer locus
+        matches = self.__subsetHelper(locus, sense)
+
+        #Remove loci that don't really overlap
+        if sense == "sense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.overlaps(locus), matches)}
+        if sense == "antisense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().overlaps(locus), matches)}
+
+        return realMatches.keys()
+
+    # # sense can be 'sense' (default), 'antisense', or 'both'
+    # # returns all members of the collection that are contained by the locus
+    # def getContained(
+    #     self,
+    #     locus,
+    #     sense='sense'
+    # ):
+    #     matches = self.__subsetHelper(locus,sense)
+    #     ### now, get rid of the ones that don't really overlap
+    #     realMatches = dict()
+    #     if sense=='sense' or sense=='both':
+    #         for i in filter(lambda lcs: locus.contains(lcs), matches):
+    #             realMatches[i] = None
+    #     if sense=='antisense' or sense=='both':
+    #         for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
+    #             realMatches[i] = None
+    #     return realMatches.keys()
 
     def stitchCollection(
         self,
@@ -492,6 +493,24 @@ def gffToLocusCollection(
         raise ValueError("Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry")
 
     return LocusCollection(lociList, 500)
+
+
+def locusCollectionToGFF(
+    locusCollection: LocusCollection
+) -> pd.DataFrame:
+    """Create .gff3 file from stitched enhancer loci collection
+
+    Args:
+        locusCollection (LocusCollection): Stitched enhancer loci collection
+
+    Returns:
+        pd.DataFrame: .gff3 formatted dataframe
+    """
+
+    lociList = locusCollection.getLoci()
+    gff_df = pd.DataFrame([(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start, locus._end, ".", locus._sense, ".", locus._ID) for locus in lociList])
+
+    return gff_df
 
 
 def makeTSSLocus(

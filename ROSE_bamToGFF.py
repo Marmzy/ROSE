@@ -1,247 +1,174 @@
+#!/usr/bin/env python
 
-#bamToGFF.py
-
-#script to grab reads from a bam that align to a .gff file
-import sys
+import argparse
+import pandas as pd
 import re
 
-import ROSE_utils
+from collections import Counter
+from pathlib import Path
+from src.utils.file_helper import check_file
+from src.utils.locus import Locus
+from src.utils.bam import Bam
 
 
-from collections import defaultdict
+def str2bool(
+    v: str
+) -> bool:
+    """Convert string to boolean
 
-import os
+    Args:
+        v (str): boolean string
 
-from string import join,upper,maketrans
+    Raises:
+        argparse.ArgumentTypeError: String is not named "true" or "false"
 
-
-
-#=====================================================================
-#====================MAPPING BAM READS TO GFF REGIONS=================
-#=====================================================================
-
-
-def mapBamToGFF(bamFile,gff,sense = 'both',extension = 200,floor = 0,rpm = False,matrix = None):
-
-#def mapBamToGFF(bamFile,gff,sense = 'both',unique = 0,extension = 200,floor = 0,density = False,rpm = False,binSize = 25,clusterGram = None,matrix = None,raw = False,includeJxnReads = False):
-    '''maps reads from a bam to a gff'''
-    floor = int(floor)
+    Returns:
+        bool: Booleanised string
+    """
     
-    #USING BAM CLASS
-    bam = ROSE_utils.Bam(bamFile)
+    if v.lower() == "true":
+        return True
+    elif v.lower() == "false":
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
-    #new GFF to write to
+def parseArgs() -> argparse.Namespace:
+    """Parse arguments from CLI
+
+    Returns:
+        argparse.Namespace: Argparse space containing parsed arguments
+    """
+
+    parser = argparse.ArgumentParser(description="Make locus objects from reads mapped to stitched enhancer loci")
+
+    #Required arguments
+    parser.add_argument("-b", "--bam", type=str, help=".bam file")
+    parser.add_argument("-i", "--input", type=str, help="Stitched enhancer loci .gff3 file")
+
+    #Optional arguments
+    parser.add_argument("-s", "--sense", type=str, nargs="?", default="both", help="Strand to map to (default: 'both')")
+    parser.add_argument("-f", "--floor", type=int, nargs="?", default=1, help="Read floor threshold necessary to count towards density (default: 1)")
+    parser.add_argument("-e", "--extension", type=int, nargs="?", default=200, help="Extend reads by n bp (default: 200)")
+    parser.add_argument("-r", "--rpm", type=str2bool, nargs="?", help="Normalize density to reads per million")
+    parser.add_argument("-m", "--matrix", type=int, nargs="?", default=1, help="Variable bin sized matrix (default: 1)")
+    parser.add_argument("-v", "--verbose", type=str2bool, nargs="?", const=True, default=False, help="Print verbose messages")
+
+
+    #Printing arguments to the command line
+    args = parser.parse_args()
+
+    print("Called with args:")
+    print(f"{args}\n")
+
+    #Ensuring that files exist
+    check_file(args.bam)
+    check_file(args.input)
+    check_file(f"{args.bam}.bai")
+
+    #Ensuring sense argument makes sense
+    if args.sense not in ["+", "-", ".", "both"]:
+        raise ValueError("Argument -s/--sense value must be '+', '-', '.' or 'both'")
+
+    return args
+        
+
+def main() -> None:
+
+    #Parse arguments from the command line
+    args = parseArgs()
+
+    #Initialising variables
     newGFF = []
-    #millionMappedReads
 
+    #Create Bam class
+    bam = Bam(args.bam)
 
-    if rpm:    
-        MMR= round(float(bam.getTotalReads('mapped'))/1000000,4)
+    if args.rpm:
+        mmr = round(bam.getTotalReads()/1000000, 4)
     else:
-        MMR = 1
+        mmr = 1
 
-    print('using a MMR value of %s' % (MMR))
+    if args.verbose:
+        print(f"MMR value: {mmr}")
     
-    senseTrans = maketrans('-+.','+-+')
+    #Check chromosome naming convention
+    bam.checkChrStatus()
 
-    if ROSE_utils.checkChrStatus(bamFile) == 1:
-      print "has chr"
-      hasChrFlag = 1
-      #sys.exit();
-    else:
-      print "does not have chr"
-      hasChrFlag = 0
-      #sys.exit()
-      
-    if type(gff) == str:
-        gff = ROSE_utils.parseTable(gff,'\t')
-        
-    #setting up a maxtrix table
+    #Reading the gff3 file as a dataframe
+    gff_df = pd.read_csv(args.input, sep="\t", header=None, comment="#")
 
-    newGFF.append(['GENE_ID','locusLine'] + ['bin_'+str(n)+'_'+bamFile.split('/')[-1] for n in range(1,int(matrix)+1,1)])        
+    #Loop over stitched enhancer loci
+    for row in zip(*gff_df.to_dict("list").values()):
 
-    #getting and processing reads for gff lines
-    ticker = 0
-    print('Number lines processed')
-    for line in gff:
-        line = line[0:9]
-        if ticker%100 == 0:
-            print ticker
-        ticker+=1
-        if not hasChrFlag:
-	  line[0] = re.sub(r"chr",r"",line[0])
-        gffLocus = ROSE_utils.Locus(line[0],int(line[3]),int(line[4]),line[6],line[1])
-        #print line[0]
-        #sys.exit()
-        searchLocus = ROSE_utils.makeSearchLocus(gffLocus,int(extension),int(extension))
-        
-        reads = bam.getReadsLocus(searchLocus,'both',False,'none')
-        #now extend the reads and make a list of extended reads
+        #Create locus object from stitched enhancer locus
+        if not bam._chr:
+            row[0] = re.sub("chr", "", row[0])
+        gffLocus = Locus(row[0], row[3], row[4], row[6], row[8])
+
+        #Get reads that lie in the extended stitched enhancer locus region
+        searchLocus = Locus(gffLocus._chr, gffLocus._start-args.extension, gffLocus._end+args.extension, gffLocus._sense, gffLocus._ID)
+        reads = bam.getReadsLocus(searchLocus)
+
+        #Extend reads
         extendedReads = []
         for locus in reads:
-            if locus.sense() == '+' or locus.sense() == '.':
-                locus = ROSE_utils.Locus(locus.chr(),locus.start(),locus.end()+extension,locus.sense(), locus.ID())
-            if locus.sense() == '-':
-                locus = ROSE_utils.Locus(locus.chr(),locus.start()-extension,locus.end(),locus.sense(),locus.ID())
+            if locus._sense == "+":
+                locus = Locus(locus._chr, locus._start, locus._end+args.extension, locus._sense, locus._ID)
+            if locus._sense == "-":
+                locus = Locus(locus._chr, locus._start-args.extension, locus._end, locus._sense, locus._ID)
             extendedReads.append(locus)
-        if gffLocus.sense() == '+' or gffLocus.sense == '.':
-            senseReads = filter(lambda x:x.sense() == '+' or x.sense() == '.',extendedReads)
-            antiReads = filter(lambda x:x.sense() == '-',extendedReads)
+
+        #Define sense and antisense reads
+        if gffLocus._sense == "+" or gffLocus._sense == ".":
+            senseReads = [read for read in extendedReads if read._sense == "+"]
+            antiReads = [read for read in extendedReads if read._sense == "-"]
         else:
-            senseReads = filter(lambda x:x.sense() == '-' or x.sense() == '.',extendedReads)
-            antiReads = filter(lambda x:x.sense() == '+',extendedReads)
+            senseReads = [read for read in extendedReads if read._sense == "-"]
+            antiReads = [read for read in extendedReads if read._sense == "+"]
 
-        senseHash = defaultdict(int)
-        antiHash = defaultdict(int)
+        #Create dictionary of number of reads mapped at each genomic position 
+        if args.sense == "+" or args.sense == "both" or args.sense == ".":
+            senseHash = Counter([i for read in senseReads for i in range(read._start, read._end+1)])
+        if args.sense == "-" or args.sense == "both" or args.sense == ".":
+            antiHash = Counter([i for read in antiReads for i in range(read._start, read._end+1)])
 
-        #filling in the readHashes             
-        if sense == '+' or sense == 'both' or sense =='.':
-            for read in senseReads:
-                for x in range(read.start(),read.end()+1,1):
-                    senseHash[x]+=1
-        if sense == '-' or sense == 'both' or sense == '.':
-            #print('foo')
-            for read in antiReads:
-                for x in range(read.start(),read.end()+1,1):
-                    antiHash[x]+=1
+        #Remove positions in hash with less than or equal 'floor' reads mapped
+        #and positions outside the stitched enhancer locus
+        keys = [k for k in set(list(senseHash.keys()) + list(antiHash.keys())) if senseHash[k]+antiHash[k] > args.floor if gffLocus._start < k < gffLocus._end]
 
-        #now apply flooring and filtering for coordinates
-        keys = ROSE_utils.uniquify(senseHash.keys()+antiHash.keys())
-        if floor > 0:
+        #Creating bin sizes for calculating read density in stitched enhancer locus
+        binSize = (len(gffLocus)-1) / int(args.matrix)
+        nBins = int(args.matrix)
 
-            keys = filter(lambda x: (senseHash[x]+antiHash[x]) > floor,keys)
-        #coordinate filtering
-        keys = filter(lambda x: gffLocus.start() < x < gffLocus.end(),keys)
+        clusterLine = [gffLocus._ID, str(gffLocus)]
 
-
-        #setting up the output table
-        clusterLine = [gffLocus.ID(),gffLocus.__str__()]
-
-        #getting the binsize
-        binSize = (gffLocus.len()-1)/int(matrix)
-        nBins = int(matrix)
-        if binSize == 0:
-            clusterLine+=['NA']*int(matrix)
-            newGFF.append(clusterLine)
-            continue
-        n=0
-        if gffLocus.sense() == '+' or gffLocus.sense() =='.' or gffLocus.sense() == 'both':
-            i = gffLocus.start()
-
-            while n <nBins:
-                n+=1
-                binKeys = filter(lambda x: i < x < i+binSize,keys)
-                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys]))/binSize
-                clusterLine+=[round(binDen/MMR,4)]
-                i = i+binSize
-        else:
-            i = gffLocus.end()
+        #Calculate stitched enhancer locus mapped read density per bin
+        n = 0
+        if gffLocus._sense == "+" or gffLocus._sense == "." or gffLocus._sense == "both":
+            i = gffLocus._start
             while n < nBins:
-                n+=1
-                binKeys = filter(lambda x: i-binSize < x < i,keys)
-                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys]))/binSize
-                clusterLine+=[round(binDen/MMR,4)]
-                i = i-binSize
-        newGFF.append(clusterLine)
-        
-            
-    return newGFF
-        
-                
-                
-#=====================================================================
-#============================MAIN METHOD==============================
-#=====================================================================
-        
-
-def main():
-    from optparse import OptionParser
-    usage = "usage: %prog [options] -b [SORTED BAMFILE] -i [INPUTFILE] -o [OUTPUTFILE]"
-    parser = OptionParser(usage = usage)
-    #required flags
-    parser.add_option("-b","--bam", dest="bam",nargs = 1, default=None,
-                      help = "Enter .bam file to be processed.")
-    parser.add_option("-i","--input", dest="input",nargs = 1, default=None,
-                      help = "Enter .gff or ENRICHED REGION file to be processed.")
-    #output flag
-    parser.add_option("-o","--output", dest="output",nargs = 1, default=None,
-                      help = "Enter the output filename.")
-    #additional options
-    parser.add_option("-s","--sense", dest="sense",nargs = 1, default='both',
-                      help = "Map to '+','-' or 'both' strands. Default maps to both.")
-
-
-    parser.add_option("-f","--floor", dest="floor",nargs =1, default=0,
-                      help = "Sets a read floor threshold necessary to count towards density")    
-    parser.add_option("-e","--extension", dest="extension",nargs = 1, default=200,
-                      help = "Extends reads by n bp. Default value is 200bp")
-    parser.add_option("-r","--rpm", dest="rpm",action = 'store_true', default=False,
-                      help = "Normalizes density to reads per million (rpm)")
-
-
-    parser.add_option("-m","--matrix", dest="matrix",nargs = 1, default=None,
-                      help = "Outputs a variable bin sized matrix. User must specify number of bins.")
-
-    (options,args) = parser.parse_args()
-
-    print(options)
-    print(args)
-
-    if options.bam:
-        bamFile = options.bam
-        fullPath = os.path.abspath(bamFile)
-        bamName = fullPath.split('/')[-1].split('.')[0]
-        pathFolder = join(fullPath.split('/')[0:-1],'/')
-        fileList = os.listdir(pathFolder)
-        hasBai = False
-        for fileName in fileList:
-            if fileName.count(bamName) == 1 and fileName.count('.bai') == 1:
-                hasBai = True
-
-        if not hasBai:
-            print('ERROR: no associated .bai file found with bam. Must use a sorted bam with accompanying index file')
-            parser.print_help()
-            exit()
-   
-    if options.sense:
-        if ['+','-','.','both'].count(options.sense) == 0:
-            print('ERROR: sense flag must be followed by +,-,.,both')
-            parser.print_help()
-            exit()
-
-
-    if options.matrix:
-        try:
-            int(options.matrix)
-        except:
-            print('ERROR: User must specify an integer bin number for matrix (try 50)')
-            parser.print_help()
-            exit()
-            
-
-    
-    
-    if options.input and options.bam:
-        inputFile = options.input
-        gffFile = inputFile
-
-        bamFile = options.bam
-        
-        if options.output == None:
-            output = os.getcwd() + inputFile.split('/')[-1]+'.mapped'
+                n += 1
+                binKeys = [k for k in keys if i < k < i+binSize]
+                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys])) / binSize
+                clusterLine += [round(binDen / mmr, 4)]
+                i = i + binSize
         else:
-            output = options.output
-        if options.matrix:
-            print('mapping to GFF and making a matrix with fixed bin number')
+            i = gffLocus._end
+            while n < nBins:
+                n += 1
+                binKeys = [k for k in keys if i-binSize < k < i]
+                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys])) / binSize
+                clusterLine += [round(binDen / mmr, 4)]
+                i = i - binSize
+        newGFF.append(clusterLine)
 
-            newGFF = mapBamToGFF(bamFile,gffFile,options.sense,int(options.extension),options.floor,options.rpm,options.matrix)
+    #Outputting per-bin read density
+    out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(args.bam).name)}" for n in range(1, int(args.matrix)+1)])
+    gff_name = Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt")
+    out_df.to_csv(gff_name, sep="\t", index=False)
 
-            
-        ROSE_utils.unParseTable(newGFF,output,'\t')
-    else:
-        parser.print_help()
                 
- 
 if __name__ == "__main__":
     main()
