@@ -70,22 +70,31 @@ if [ -z "$RPM" ]; then VALUE_P=true; else VALUE_P=$RPM; fi;
 if [ -z "$MATRIX" ]; then VALUE_M=1; else VALUE_M=$MATRIX; fi;
 
 
-#Create stitched enhancers .gff3 file
-python3 ROSE_main.py -g ${VALUE_G} -i ${VALUE_I} -r ${VALUE_R} -o ${VALUE_O} -c ${VALUE_C} -s ${VALUE_S} -t ${VALUE_T} -v ${VALUE_V}
-
-#Initialising variable names
-STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_distal.gff3" | head -n 1)
-STITCH_NAME=$(basename ${STITCHED})
-CONTROL_NAME=$(basename ${VALUE_I})
-
-OUTRANK=${PWD}/${VALUE_O}/mappedGFF/${STITCH_NAME::-5}_$(basename ${VALUE_R})_mapped.gff3
-OUTCONT=${PWD}/${VALUE_O}/mappedGFF/${CONTROL_NAME::-5}_$(basename ${VALUE_C})_mapped.gff3
-
-#Mapping reads to stitched enhancers gff
-python3 ROSE_bamToGFF.py -b $VALUE_R -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+#Initialising variables
+BAM_FILES=($VALUE_R)
 if [ "$VALUE_C" ]; then
-    python3 ROSE_bamToGFF.py -b $VALUE_C -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+    BAM_FILES+=($VALUE_C)
 fi
+
+# #Create stitched enhancers .gff3 file
+# python3 ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -v $VALUE_V
+
+#Creating variable names
+ORIGINAL=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1).gff3")
+STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_distal.gff3" | head -n 1)
+
+# STITCH_NAME=$(basename ${STITCHED})
+# CONTROL_NAME=$(basename ${VALUE_I})
+# OUTRANK=${PWD}/${VALUE_O}/mappedGFF/${STITCH_NAME::-5}_$(basename ${VALUE_R})_mapped.gff3
+# OUTCONT=${PWD}/${VALUE_O}/mappedGFF/${CONTROL_NAME::-5}_$(basename ${VALUE_C})_mapped.gff3
+
+# #Mapping reads to stitched enhancers gff
+# for BAM in ${BAM_FILES[@]}; do
+#     python3 ROSE_bamToGFF.py -b $BAM -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+#     python3 ROSE_bamToGFF.py -b $BAM -i $ORIGINAL -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+# done
+
+python3 ROSE_mapCollection.py -s $STITCHED -g $VALUE_I -b "${BAM_FILES[@]}" -d ${PWD}/${VALUE_O}/mappedGFF
 
 #Write something descriptive here
 # Rscript conversion.R
