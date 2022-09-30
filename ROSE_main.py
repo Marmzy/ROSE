@@ -9,7 +9,6 @@ CONTACT: youngcomputation@wi.mit.edu
 '''
 
 import argparse
-import pandas as pd
 
 from pathlib import Path
 from src.main_functions import regionStitching
@@ -48,21 +47,22 @@ def parseArgs() -> argparse.Namespace:
         argparse.Namespace: Argparse space containing parsed arguments
     """
 
-    parser = argparse.ArgumentParser(description='Stitch regions together to form enhancers, map read density to stitched regions and \
-                                                  rank enhancers by read desnity to discover super-enhancers')
+    parser = argparse.ArgumentParser(description="Stitch regions together to form enhancers, map read density to stitched regions and \
+                                                  rank enhancers by read desnity to discover super-enhancers")
 
     #Required arguments
-    parser.add_argument('-g', '--genome', type=str, help='Genome build (MM10, MM9, MM8, HG18, HG19, HG38)')
-    parser.add_argument('-i', '--input', type=str, help='File (.bed, .gff or .gtf) containing binding sites to make enhancers')
-    parser.add_argument('-o', '--output', type=str, help='Output directory name')
-    parser.add_argument('-r', '--rankby',  type=str, help='File (.bam) to rank enhancers by')
+    parser.add_argument("-g", "--genome", type=str, help="Genome build (MM10, MM9, MM8, HG18, HG19, HG38)")
+    parser.add_argument("-i", "--input", type=str, help="File (.bed, .gff or .gtf) containing binding sites to make enhancers")
+    parser.add_argument("-b", "--bams", nargs="*", help="List of .bam files used")
+    
+    parser.add_argument("-o", "--output", type=str, help="Output directory name")
+    parser.add_argument("-r", "--rankby",  type=str, help="File (.bam) to rank enhancers by")
 
     #Optional arguments
-    parser.add_argument('-b', '--bams', nargs='*', help="Comma separated list of additional files (.bam) to map to")
-    parser.add_argument('-c', '--control',  type=str, nargs='?', help="File (.bam) to rank enhancer by")
-    parser.add_argument('-s', '--stitch', type=int, nargs='?', default=12500, help="Max linking distance for stitching")
-    parser.add_argument('-t', '--tss', type=int, nargs='?', default=0, help="Distance from TSS to exclude (0 = no TSS exclusion)")
-    parser.add_argument('-v', '--verbose', type=str2bool, nargs='?', const=True, default=False, help='Print verbose messages')
+    parser.add_argument("-c", "--control",  type=str, nargs="?", help="File (.bam) to rank enhancer by")
+    parser.add_argument("-s", "--stitch", type=int, nargs="?", default=12500, help="Max linking distance for stitching")
+    parser.add_argument("-t", "--tss", type=int, nargs="?", default=0, help="Distance from TSS to exclude (0 = no TSS exclusion)")
+    parser.add_argument("-v", "--verbose", type=str2bool, nargs="?", const=True, default=False, help="Print verbose messages")
 
 
     #Printing arguments to the command line
@@ -83,7 +83,7 @@ def main() -> None:
     """Stitch enhancer loci together
 
     Raises:
-        ValueError: _description_
+        ValueError: if input file is not a .bed, .gtf, .gff or gff3 file
     """
 
     #Parse arguments from the command line
