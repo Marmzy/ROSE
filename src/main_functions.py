@@ -2,30 +2,8 @@
 
 import pandas as pd
 
-from src.utils.locus import LocusCollection, gffToLocusCollection, makeTSSLocus
+from src.utils.locus import LocusCollection, makeTSSLocus
 from typing import List, Tuple
-
-
-# def checkRefCollection(
-#     referenceCollection: LocusCollection
-# ) -> None:
-#     """Checking that loci in the collection have unique names
-
-#     Args:
-#         referenceCollection (LocusCollection): Collection of all .gff3 entries as loci
-
-#     Raises:
-#         ValueError: If non-unique identifiers are found among .gff3 entries
-#     """
-
-#     #Getting loci IDs
-#     namesList = [locus._ID for locus in referenceCollection.getLoci()]
-    
-#     #Ensuring loci all have unique identifiers
-#     if len(namesList) != len(set(namesList)):
-#         raise ValueError("Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry")
-#     else:
-#         print("Reference collection passes qc")
 
 
 def regionStitching(
@@ -113,96 +91,3 @@ def regionStitching(
         return fixedCollection, debugOutput
     else:
         return stitchedCollection, debugOutput
-
-
-# def mapCollection(stitchedCollection,referenceCollection,bamFileList,mappedFolder,output,refName):
-
-
-#     '''
-#     makes a table of factor density in a stitched locus and ranks table by number of loci stitched together
-#     '''
-
-    
-#     print('FORMATTING TABLE')
-#     loci = stitchedCollection.getLoci()
-
-#     locusTable = [['REGION_ID','CHROM','START','STOP','NUM_LOCI','CONSTITUENT_SIZE']]
-
-#     lociLenList = []
-
-#     #strip out any that are in chrY
-#     for locus in list(loci):
-#         if locus.chr() == 'chrY':
-#             loci.remove(locus)
-    
-#     for locus in loci:
-#         #numLociList.append(int(stitchLocus.ID().split('_')[1]))
-#         lociLenList.append(locus.len())
-#         #numOrder = order(numLociList,decreasing=True)
-#     lenOrder = ROSE_utils.order(lociLenList,decreasing=True)
-#     ticker = 0
-#     for i in lenOrder:
-#         ticker+=1
-#         if ticker%1000 ==0:
-#             print(ticker)
-#         locus = loci[i]
-
-#         #First get the size of the enriched regions within the stitched locus
-#         refEnrichSize = 0
-#         refOverlappingLoci = referenceCollection.getOverlap(locus,'both')
-#         for refLocus in refOverlappingLoci:
-#             refEnrichSize+=refLocus.len()
-
-#         try:
-#             stitchCount = int(locus.ID().split('_')[0])
-#         except ValueError:
-#             stitchCount = 1
-        
-#         locusTable.append([locus.ID(),locus.chr(),locus.start(),locus.end(),stitchCount,refEnrichSize])
-        
-            
-
-#     print('GETTING MAPPED DATA')
-#     for bamFile in bamFileList:
-        
-#         bamFileName = bamFile.split('/')[-1]
-
-#         print('GETTING MAPPING DATA FOR  %s' % bamFile)
-#         #assumes standard convention for naming enriched region gffs
-        
-#         #opening up the mapped GFF
-#         print('OPENING %s%s_%s_MAPPED.gff' % (mappedFolder,refName,bamFileName))
-
-#         mappedGFF =ROSE_utils.parseTable('%s%s_%s_MAPPED.gff' % (mappedFolder,refName,bamFileName),'\t')        
-
-#         signalDict = defaultdict(float)
-#         print('MAKING SIGNAL DICT FOR %s' % (bamFile))
-#         mappedLoci = []
-#         for line in mappedGFF[1:]:
-
-#             chrom = line[1].split('(')[0]
-#             start = int(line[1].split(':')[-1].split('-')[0])
-#             end = int(line[1].split(':')[-1].split('-')[1])
-#             mappedLoci.append(ROSE_utils.Locus(chrom,start,end,'.',line[0]))
-#             try:
-#                 signalDict[line[0]] = float(line[2])*(abs(end-start))
-#             except ValueError:
-#                 print('WARNING NO SIGNAL FOR LINE:')
-#                 print(line)
-#                 continue
-                
-                
-        
-#         mappedCollection = ROSE_utils.LocusCollection(mappedLoci,500)
-#         locusTable[0].append(bamFileName)
-
-#         for i in range(1,len(locusTable)):
-#             signal=0.0
-#             line = locusTable[i]
-#             lineLocus = ROSE_utils.Locus(line[1],line[2],line[3],'.')
-#             overlappingRegions = mappedCollection.getOverlap(lineLocus,sense='both')
-#             for region in overlappingRegions:
-#                 signal+= signalDict[region.ID()]
-#             locusTable[i].append(signal)
-
-#     ROSE_utils.unParseTable(locusTable,output,'\t')

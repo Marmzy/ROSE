@@ -75,6 +75,8 @@ def parseArgs() -> argparse.Namespace:
         
 
 def main() -> None:
+    """Calculate read density per stitched enhancer locus bin
+    """
 
     #Parse arguments from the command line
     args = parseArgs()
@@ -138,13 +140,13 @@ def main() -> None:
         #and positions outside the stitched enhancer locus
         keys = [k for k in set(list(senseHash.keys()) + list(antiHash.keys())) if senseHash[k]+antiHash[k] > args.floor if gffLocus._start < k < gffLocus._end]
 
-        #Creating bin sizes for calculating read density in stitched enhancer locus
+        #Creating bin sizes for calculating read density in stitched enhancer loci
         binSize = (len(gffLocus)-1) / int(args.matrix)
         nBins = int(args.matrix)
 
         clusterLine = [gffLocus._ID, str(gffLocus)]
 
-        #Calculate stitched enhancer locus mapped read density per bin
+        #Calculate density of mapped reads per bin in the stitched enhancer locus
         n = 0
         if gffLocus._sense == "+" or gffLocus._sense == "." or gffLocus._sense == "both":
             i = gffLocus._start
@@ -166,8 +168,8 @@ def main() -> None:
 
     #Outputting per-bin read density
     out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(args.bam).name)}" for n in range(1, int(args.matrix)+1)])
-    gff_name = Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt")
-    out_df.to_csv(gff_name, sep="\t", index=False)
+    out_name = Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt")
+    out_df.to_csv(out_name, sep="\t", index=False)
 
                 
 if __name__ == "__main__":

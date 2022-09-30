@@ -182,6 +182,158 @@ class LocusCollection:
         self._winSize = windowSize
         for locus in loci:
             self.__addLocus(locus)
+        
+    def append(
+        self,
+        new: Locus
+    ) -> None:
+        """Add new locus to collection
+
+        Args:
+            new (Locus): Locus to add
+        """
+
+        self.__addLocus(new)
+
+    def remove(
+        self,
+        old: Locus
+    ) -> None:
+        """Remove locus from loci the LocusCollection
+
+        Args:
+            old (Locus): Locus to remove
+
+        Raises:
+            ValueError: If locus is not in the loci collection
+        """
+
+        #Check that locus is actually present
+        if old not in self._loci.keys():
+            raise ValueError("Locus to remove is not in the collection")
+
+        #Removing the locus from the loci dictionary
+        del self._loci[old]
+
+        #Removing the locus from the KeyRange dictionary
+        if old._sense == ".":
+            senseList = ["+", "-"]
+        else:
+            senseList = [old._sense]
+
+        for k in self.__getKeyRange(old):
+            for sense in senseList:
+                self._chrToCoordToLoci[old._chr+sense][k].remove(old)
+
+    def getContainers(
+        self,
+        locus: Locus,
+        sense: str = "sense"
+    ) -> TypedDict:
+        """Get TSS loci that envelop the enhancer locus
+
+        Args:
+            locus (Locus): Enhancer locus
+            sense (str, optional): TSS loci strands. Defaults to "sense".
+
+        Returns:
+            TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
+        """
+
+        #Get all loci from the TSS collection that (partly) overlap with the enhancer locus
+        matches = self.__subsetHelper(locus, sense)
+
+        #Get all TSS loci that envelop the enhancer locus
+        if sense == "sense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
+        if sense == "antisense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
+        
+        return realMatches.keys()
+
+    def getLoci(
+        self
+    ) -> TypedDict:
+        """Get all loci in the collection
+
+        Returns:
+            TypedDict: Dict keys, with loci as keys
+        """
+
+        return self._loci.keys()
+        
+    def getOverlap(
+        self,
+        locus: Locus,
+        sense: str = "sense"
+    ) -> TypedDict:
+        """Get enhancer loci that overlap with a given enhaner locus
+
+        Args:
+            locus (Locus): Locus against which overlapping loci are to be searched for
+            sense (str, optional): Locus strnd. Defaults to "sense".
+
+        Returns:
+            TypedDict: Dict keys, with overlapping loci as keys
+        """
+
+        #Get all loci from the enhancer collection that overlap with the enhancer locus
+        matches = self.__subsetHelper(locus, sense)
+
+        #Remove loci that don't really overlap
+        if sense == "sense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.overlaps(locus), matches)}
+        if sense == "antisense" or sense == "both":
+            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().overlaps(locus), matches)}
+
+        return realMatches.keys()
+
+    def stitchCollection(
+        self,
+        stitchWindow: int = 1,
+        sense: str = "both"
+    ) -> LocusCollection:
+        """Stitch enhancer loci together into a LocusCollection
+
+        Args:
+            stitchWindow (int, optional): Window size to stitch enhancers together. Defaults to 1.
+            sense (str, optional): LocusCollection strand. Defaults to "both".
+
+        Returns:
+            LocusCollection: Collection of stichted enhancer loci
+        """
+
+        #Initialising variables
+        locusList = self.getLoci()
+        oldCollection = LocusCollection(locusList, 500)
+        stitchedCollection = LocusCollection([], 500)
+
+        #Loop over all enhancers
+        for locus in locusList:
+            if locus in oldCollection._loci:
+                oldCollection.remove(locus)
+                overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense, locus._ID), sense)
+
+                #Loop over enhancers that overlap with the target enhancer and create stitched enhancer locus
+                stitchTicker = 1
+                while len(overlappingLoci) > 0:
+                    stitchTicker += len(overlappingLoci)
+                    overlapCoords = [locus._start, locus._end]
+
+                    for overlappingLocus in overlappingLoci:
+                        overlapCoords += [overlappingLocus._start, overlappingLocus._end]
+                        oldCollection.remove(overlappingLocus)
+                    if sense == "both":
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), ".", locus._ID)
+                    else:
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), locus._sense, locus._ID)
+                    overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense), sense)
+
+                #Add the stiched enhancer locus to a new LocusCollection
+                locus._ID = f"{stitchTicker}_{locus._ID}_lociStitched"
+                stitchedCollection.append(locus)
+
+        return stitchedCollection
 
     def __addLocus(
         self,
@@ -277,193 +429,6 @@ class LocusCollection:
                             matches[lcs] = None
 
         return matches.keys()
-        
-    def append(
-        self,
-        new: Locus
-    ) -> None:
-        """Add new locus to collection
-
-        Args:
-            new (Locus): Locus to add
-        """
-
-        self.__addLocus(new)
-
-    # def extend(
-    #     self,
-    #     newList
-    # ) -> None:
-    #     for lcs in newList:
-    #         self.__addLocus(lcs)
-
-    def remove(
-        self,
-        old: Locus
-    ) -> None:
-        """Remove locus from loci the LocusCollection
-
-        Args:
-            old (Locus): Locus to remove
-
-        Raises:
-            ValueError: If locus is not in the loci collection
-        """
-
-        #Check that locus is actually present
-        if old not in self._loci.keys():
-            raise ValueError("Locus to remove is not in the collection")
-
-        #Removing the locus from the loci dictionary
-        del self._loci[old]
-
-        #Removing the locus from the KeyRange dictionary
-        if old._sense == ".":
-            senseList = ["+", "-"]
-        else:
-            senseList = [old._sense]
-
-        for k in self.__getKeyRange(old):
-            for sense in senseList:
-                self._chrToCoordToLoci[old._chr+sense][k].remove(old)
-
-    def getContainers(
-        self,
-        locus: Locus,
-        sense: str = "sense"
-    ) -> TypedDict:
-        """Get TSS loci that envelop the enhancer locus
-
-        Args:
-            locus (Locus): Enhancer locus
-            sense (str, optional): TSS loci strands. Defaults to "sense".
-
-        Returns:
-            TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
-        """
-
-        #Get all loci from the TSS collection that (partly) overlap with the enhancer locus
-        matches = self.__subsetHelper(locus, sense)
-
-        #Get all TSS loci that envelop the enhancer locus
-        if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
-        if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
-        
-        return realMatches.keys()
-
-    def getLoci(
-        self
-    ) -> TypedDict:
-        """Get all loci in the collection
-
-        Returns:
-            TypedDict: Dict keys, with loci as keys
-        """
-
-        return self._loci.keys()
-
-    # def getChrList(
-    #     self
-    # ):
-    #     # i need to remove the strand info from the chromosome keys and make
-    #     # them non-redundant.
-    #     tempKeys = dict()
-    #     for k in self.__chrToCoordToLoci.keys():
-    #         tempKeys[k[:-1]] = None
-    #     return tempKeys.keys()
-        
-    def getOverlap(
-        self,
-        locus: Locus,
-        sense: str = "sense"
-    ) -> TypedDict:
-        """Get enhancer loci that overlap with a given enhaner locus
-
-        Args:
-            locus (Locus): Locus against which overlapping loci are to be searched for
-            sense (str, optional): Locus strnd. Defaults to "sense".
-
-        Returns:
-            TypedDict: Dict keys, with overlapping loci as keys
-        """
-
-        #Get all loci from the enhancer collection that overlap with the enhancer locus
-        matches = self.__subsetHelper(locus, sense)
-
-        #Remove loci that don't really overlap
-        if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.overlaps(locus), matches)}
-        if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().overlaps(locus), matches)}
-
-        return realMatches.keys()
-
-    # # sense can be 'sense' (default), 'antisense', or 'both'
-    # # returns all members of the collection that are contained by the locus
-    # def getContained(
-    #     self,
-    #     locus,
-    #     sense='sense'
-    # ):
-    #     matches = self.__subsetHelper(locus,sense)
-    #     ### now, get rid of the ones that don't really overlap
-    #     realMatches = dict()
-    #     if sense=='sense' or sense=='both':
-    #         for i in filter(lambda lcs: locus.contains(lcs), matches):
-    #             realMatches[i] = None
-    #     if sense=='antisense' or sense=='both':
-    #         for i in filter(lambda lcs: locus.containsAntisense(lcs), matches):
-    #             realMatches[i] = None
-    #     return realMatches.keys()
-
-    def stitchCollection(
-        self,
-        stitchWindow: int = 1,
-        sense: str = "both"
-    ) -> LocusCollection:
-        """Stitch enhancer loci together into a LocusCollection
-
-        Args:
-            stitchWindow (int, optional): Window size to stitch enhancers together. Defaults to 1.
-            sense (str, optional): LocusCollection strand. Defaults to "both".
-
-        Returns:
-            LocusCollection: Collection of stichted enhancer loci
-        """
-
-        #Initialising variables
-        locusList = self.getLoci()
-        oldCollection = LocusCollection(locusList, 500)
-        stitchedCollection = LocusCollection([], 500)
-
-        #Loop over all enhancers
-        for locus in locusList:
-            if locus in oldCollection._loci:
-                oldCollection.remove(locus)
-                overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense, locus._ID), sense)
-
-                #Loop over enhancers that overlap with the target enhancer and create stitched enhancer locus
-                stitchTicker = 1
-                while len(overlappingLoci) > 0:
-                    stitchTicker += len(overlappingLoci)
-                    overlapCoords = [locus._start, locus._end]
-
-                    for overlappingLocus in overlappingLoci:
-                        overlapCoords += [overlappingLocus._start, overlappingLocus._end]
-                        oldCollection.remove(overlappingLocus)
-                    if sense == "both":
-                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), ".", locus._ID)
-                    else:
-                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), locus._sense, locus._ID)
-                    overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense), sense)
-
-                #Add the stiched enhancer locus to a new LocusCollection
-                locus._ID = f"{stitchTicker}_{locus._ID}_lociStitched"
-                stitchedCollection.append(locus)
-
-        return stitchedCollection
 
 
 def gffToLocusCollection(

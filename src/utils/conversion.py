@@ -17,7 +17,7 @@ def bed_to_gff3(
     """
 
     #Reading the .bed file as a dataframe
-    bed_df = pd.read_csv(input, sep="\t", header=None, comment='#')
+    bed_df = pd.read_csv(input, sep="\t", header=None, comment="#")
 
     #Converting the .bed dataframe to a .gff3 dataframe
     gff_df = pd.DataFrame({
@@ -82,7 +82,7 @@ def check_gff(
     }
 
     #Reading the .gff3 file as a dataframe
-    df = pd.read_csv(input, sep="\t", header=None, comment='#')
+    df = pd.read_csv(input, sep="\t", header=None, comment="#")
 
     #If .gff3 seqid column values do not start with "chr", see if they are Human NCBI refseq accession numbers and replace them
     if "chr" not in df.iloc[:, 0].values:
@@ -108,7 +108,7 @@ def gff_to_gff3(
 ) -> None:
 
     #Reading the .gff file as a dataframe
-    df = pd.read_csv(input, sep="\t", header=None, comment='#')
+    df = pd.read_csv(input, sep="\t", header=None, comment="#")
 
     #Filling missing values 
     df.iloc[:, 1] = ["ROSE"] * len(df)
@@ -143,7 +143,7 @@ def gtf_to_gff3(
                       "inference", "note", "exception", "transl_except", "pseudo", "partial"]
 
     #Reading the .gtf file as a dataframe
-    df = pd.read_csv(input, sep="\t", header=None, comment='#')
+    df = pd.read_csv(input, sep="\t", header=None, comment="#")
     df.iloc[:, 1] = ["ROSE"] * len(df)
     if full:
         df.iloc[:, 8] = [";".join([a for a in [search(attr, annot) for attr in gtf_attributes] if a is not None]) for annot in df.iloc[:, 8].values]
