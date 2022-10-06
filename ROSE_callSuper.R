@@ -1,33 +1,17 @@
-#============================================================================
-#==============SUPER-ENHANCER CALLING AND PLOTTING FUNCTIONS=================
-#============================================================================
+#!/usr/bin/env Rscript
 
- #This function calculates the cutoff by sliding a diagonal line and finding where it is tangential (or as close as possible)
- calculate_cutoff <- function(inputVector, drawPlot=TRUE,...){
- 	inputVector <- sort(inputVector)
-	inputVector[inputVector<0]<-0 #set those regions with more control than ranking equal to zero
-	slope <- (max(inputVector)-min(inputVector))/length(inputVector) #This is the slope of the line we want to slide. This is the diagonal.
-	xPt <- floor(optimize(numPts_below_line,lower=1,upper=length(inputVector),myVector= inputVector,slope=slope)$minimum) #Find the x-axis point where a line passing through that point has the minimum number of points below it. (ie. tangent)
-	y_cutoff <- inputVector[xPt] #The y-value at this x point. This is our cutoff.
-	
-	if(drawPlot){  #if TRUE, draw the plot
-		plot(1:length(inputVector), inputVector,type="l",...)
-		b <- y_cutoff-(slope* xPt)
-		abline(v= xPt,h= y_cutoff,lty=2,col=8)
-		points(xPt,y_cutoff,pch=16,cex=0.9,col=2)
-		abline(coef=c(b,slope),col=2)
-		title(paste("x=",xPt,"\ny=",signif(y_cutoff,3),"\nFold over Median=",signif(y_cutoff/median(inputVector),3),"x\nFold over Mean=",signif(y_cutoff/mean(inputVector),3),"x",sep=""))
-		axis(1,sum(inputVector==0),sum(inputVector==0),col.axis="pink",col="pink") #Number of regions with zero signal
-	}
-	return(list(absolute=y_cutoff,overMedian=y_cutoff/median(inputVector),overMean=y_cutoff/mean(inputVector)))
-}
+suppressMessages(library(data.table))
+suppressMessages(library(docstring))
+suppressMessages(library(optparse))
 
-#this is an accessory function, that determines the number of points below a diagnoal passing through [x,yPt]
-numPts_below_line <- function(myVector,slope,x){
-	yPt <- myVector[x]
-	b <- yPt-(slope*x)
-	xPts <- 1:length(myVector)
-	return(sum(myVector<=(xPts*slope+b)))
+
+get_path <- function() {
+	#' Get path to ROSE tool directory
+	#' 
+	#' @return Path to ROSE tool directory
+
+	path <- strsplit(getwd(), "/")
+	return(paste(unlist(path)[1:which(unlist(path)=="ROSE")], collapse="/"))
 }
 
 
@@ -107,76 +91,59 @@ writeSuperEnhancer_table <- function(superEnhancer,description,outputFile,additi
 #===================SUPER-ENHANCER CALLING AND PLOTTING======================
 #============================================================================
 
+#Parse arguments from command line
+option_list <- list(
+	make_option(c("-o", "--output"), action="store", type="character", default=NULL, help="Output directory name"),
+	make_option(c("-d", "--density"), action="store", type="character", default=NULL, help="Stitched enhancer loci signal density file"),
+	make_option(c("-g", "--gff"), action="store", type="character", default=NULL, help=""),
+	make_option(c("-c", "--control"), action="store", type="character", default=NULL, help="Control .bam file")
+)
 
+opt <- parse_args(OptionParser(option_list=option_list))
 
-args <- commandArgs()
+#Initialising variables
+path <- get_path()
+densityName <- tail(unlist(strsplit(opt$density, "/")))
 
-print('THESE ARE THE ARGUMENTS')
-print(args)
+# outFolder <- opt$output
+# enhancerFile <- opt$density
+# enhancerName <- opt$gff
+# wceName <- opt$control
 
-#ARGS
-outFolder = args[3]
-enhancerFile = args[4]
-enhancerName = args[5]
-wceName = args[6]
+#Load necessary functions
+source(paste(c(path, "src/utils/output.R"), collapse="/"))
+source(paste(c(path, "src/utils/super_enhancer.R"), collapse="/"))
 
+#Read stitched enhancer loci density signal file as dataframe
+stitched_regions <- fread(opt$density, sep="\t")
 
+# rankBy_factor = colnames(stitched_regions)[7]
+# prefix = unlist(strsplit(rankBy_factor, "_"))[1]
 
-#Read enhancer regions with closestGene columns
-stitched_regions <- read.delim(file= enhancerFile,sep="\t")
+# print(rankBy_factor)
+# print(prefix)
 
+#Subtract background signal if control is available
+if (is.null(opt$control)) {
+	rankBy_vector = stitched_regions[,7]
+} else {
+	rankBy_vector = stitched_regions[,7] - stitched_regions[,8]
+}
 
-#perform WCE subtraction. Using pipeline table to match samples to proper background. 
-rankBy_factor = colnames(stitched_regions)[7]
-
-prefix = unlist(strsplit(rankBy_factor,'_'))[1]
-
-if(wceName == 'NONE'){
-	
-	
-	rankBy_vector = as.numeric(stitched_regions[,7])
-	
-}else{
-	wceName = colnames(stitched_regions)[8]
-	print('HERE IS THE WCE NAME')
-	print(wceName)
-	
-	rankBy_vector = as.numeric(stitched_regions[,7])-as.numeric(stitched_regions[,8])
-}	
-	
-
-#SETTING NEGATIVE VALUES IN THE rankBy_vector to 0
-
+#Setting negative values to 0
 rankBy_vector[rankBy_vector < 0] <- 0
 
+#Calculating the superenhancer signal cut-off value
+cutoff_options <- calculate_cutoff(as.matrix(rankBy_vector))
 
-#FIGURING OUT THE CUTOFF
+#Get superenhancers based on cut-off
+superEnhancerRows <- which(rankBy_vector > cutoff_options$absolute)
+typicalEnhancers <- setdiff(1:nrow(stitched_regions), superEnhancerRows)
+enhancerDescription <- paste(opt$gff," Enhancers\nCreated from ", tail(unlist(strsplit(opt$density, "/")), n=1), "\nRanked by ", colnames(stitched_regions)[7], "\nUsing cutoff of ", cutoff_options$absolute, " for Super-Enhancers", sep="", collapse="")
 
-cutoff_options <- calculate_cutoff(rankBy_vector, drawPlot=FALSE,xlab=paste(rankBy_factor,'_enhancers'),ylab=paste(rankByFactor,' Signal','- ',wceName),lwd=2,col=4)
-
-
-#These are the super-enhancers
-superEnhancerRows <- which(rankBy_vector> cutoff_options$absolute)
-typicalEnhancers = setdiff(1:nrow(stitched_regions),superEnhancerRows)
-enhancerDescription <- paste(enhancerName," Enhancers\nCreated from ", enhancerFile,"\nRanked by ",rankBy_factor,"\nUsing cutoff of ",cutoff_options$absolute," for Super-Enhancers",sep="",collapse="")
-
-
-#MAKING HOCKEY STICK PLOT
-plotFileName = paste(outFolder,enhancerName,'_Plot_points.png',sep='')
-png(filename=plotFileName,height=600,width=600)
-signalOrder = order(rankBy_vector,decreasing=TRUE)
-if(wceName == 'NONE'){
-	plot(length(rankBy_vector):1,rankBy_vector[signalOrder], col='red',xlab=paste(rankBy_factor,'_enhancers'),ylab=paste(rankBy_factor,' Signal'),pch=19,cex=2)	
-	
-}else{
-	plot(length(rankBy_vector):1,rankBy_vector[signalOrder], col='red',xlab=paste(rankBy_factor,'_enhancers'),ylab=paste(rankBy_factor,' Signal','- ',wceName),pch=19,cex=2)
-}
-abline(h=cutoff_options$absolute,col='grey',lty=2)
-abline(v=length(rankBy_vector)-length(superEnhancerRows),col='grey',lty=2)
-lines(length(rankBy_vector):1,rankBy_vector[signalOrder],lwd=4, col='red')
-text(0,0.8*max(rankBy_vector),paste(' Cutoff used: ',cutoff_options$absolute,'\n','Super-Enhancers identified: ',length(superEnhancerRows)),pos=4)
-
-dev.off()
+#Creating hockey stick plot
+# hockey_stick_plot(opt$output, opt$gff)
+quit()
 
 
 
