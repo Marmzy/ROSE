@@ -88,9 +88,9 @@ def main() -> None:
 
     #Parse arguments from the command line
     args = parseArgs()
-    path = get_path()
 
     #Initialising variables
+    path = get_path()
     # debug = False
     genomeDict = {
         "HG18": Path(path, "data", "annotation", "hg18_refseq.ucsc"),
