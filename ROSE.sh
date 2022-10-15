@@ -92,5 +92,12 @@ done
 #Calculate read density for each stitched enhancer locus
 python3 ROSE_mapCollection.py -s $STITCHED -g $VALUE_I -b "${BAM_FILES[@]}" -d ${PWD}/${VALUE_O}/mappedGFF
 
-#Write something descriptive here
-# Rscript conversion.R
+#Creating more variable names
+DENSITY=$(find ${PWD}/${VALUE_O}/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_enhancer_region_map.txt")
+
+#Identifing and visualising superenhancers
+if [ "$VALUE_C" ]; then
+    Rscript ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I -c $VALUE_C
+else
+    Rscript ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I
+fi
