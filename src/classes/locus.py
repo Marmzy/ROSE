@@ -13,7 +13,7 @@ class Locus:
         start: int,
         end: int,
         sense: str,
-        ID: str = ""
+        ID: str=""
     ) -> None:
         """Create locus region object
 

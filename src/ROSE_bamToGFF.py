@@ -6,9 +6,9 @@ import re
 
 from collections import Counter
 from pathlib import Path
-from src.utils.file_helper import check_file
-from src.utils.locus import Locus
-from src.utils.bam import Bam
+from utils.file_helper import check_file
+from classes.locus import Locus
+from classes.bam import Bam
 
 
 def str2bool(

@@ -34,8 +34,7 @@ def bed_to_gff3(
 
     #Outputting the gff3 dataframe
     with open(output, "w") as f_out:
-        f_out.write("##gff-version 3\n")
-        f_out.write("##source-version ROSE\n")
+        f_out.write("##gff-version 3\n##source-version ROSE\n")
         gff_df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 
@@ -92,8 +91,7 @@ def check_gff(
         #Outputting the gff3 dataframe
         if len(df) == len(chr_df):
             with open(output, "w") as f_out:
-                f_out.write("##gff-version 3\n")
-                f_out.write("##source-version ROSE\n")
+                f_out.write("##gff-version 3\n##source-version ROSE\n")
                 df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
         else:
             raise ValueError(f"Input file {input}'s seqid column values must start with 'chr'")
@@ -119,8 +117,7 @@ def gff_to_gff3(
 
     #Outputting the gff3 dataframe
     with open(output, "w") as f_out:
-        f_out.write("##gff-version 3\n")
-        f_out.write("##source-version ROSE\n")
+        f_out.write("##gff-version 3\n##source-version ROSE\n")
         df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
     
@@ -152,8 +149,7 @@ def gtf_to_gff3(
 
     #Outputting the gff3 dataframe
     with open(output, "w") as f_out:
-        f_out.write("##gff-version 3\n")
-        f_out.write("##source-version ROSE\n")
+        f_out.write("##gff-version 3\n##source-version ROSE\n")
         df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 

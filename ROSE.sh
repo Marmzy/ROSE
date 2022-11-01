@@ -77,7 +77,7 @@ if [ "$VALUE_C" ]; then
 fi
 
 #Create stitched enhancers .gff3 file
-python3 ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -v $VALUE_V
+python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -v $VALUE_V
 
 #Creating variable names
 ORIGINAL=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1).gff3")
@@ -85,19 +85,20 @@ STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "."
 
 #Mapping reads to stitched enhancers gff
 for BAM in ${BAM_FILES[@]}; do
-    python3 ROSE_bamToGFF.py -b $BAM -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
-    python3 ROSE_bamToGFF.py -b $BAM -i $ORIGINAL -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
+    python3 src/ROSE_bamToGFF.py -b $BAM -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V &
+    python3 src/ROSE_bamToGFF.py -b $BAM -i $ORIGINAL -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V &
+    wait
 done
 
 #Calculate read density for each stitched enhancer locus
-python3 ROSE_mapCollection.py -s $STITCHED -g $VALUE_I -b "${BAM_FILES[@]}" -d ${PWD}/${VALUE_O}/mappedGFF
+python3 src/ROSE_mapCollection.py -s $STITCHED -g $VALUE_I -b "${BAM_FILES[@]}" -d ${PWD}/${VALUE_O}/mappedGFF
 
 #Creating more variable names
 DENSITY=$(find ${PWD}/${VALUE_O}/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_enhancer_region_map.txt")
 
 #Identifing and visualising superenhancers
 if [ "$VALUE_C" ]; then
-    Rscript ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I -c $VALUE_C
+    Rscript src/ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I -c $VALUE_C
 else
-    Rscript ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I
+    Rscript src/ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I
 fi

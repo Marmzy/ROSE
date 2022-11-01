@@ -30,8 +30,8 @@ path <- get_path()
 densityName <- tail(unlist(strsplit(opt$density, "/")))
 
 #Load necessary functions
-source(paste(c(path, "src/utils/output.R"), collapse="/"))
-source(paste(c(path, "src/utils/super_enhancer.R"), collapse="/"))
+source(paste(c(path, "src/superenhancers/output.R"), collapse="/"))
+source(paste(c(path, "src/superenhancers/super_enhancer.R"), collapse="/"))
 
 #Read stitched enhancer loci density signal file as dataframe
 stitched_regions <- fread(opt$density, sep="\t")

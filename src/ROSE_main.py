@@ -1,21 +1,14 @@
 #!/usr/bin/env python
 
-'''
-PROGRAM TO STITCH TOGETHER REGIONS TO FORM ENHANCERS, MAP READ DENSITY TO STITCHED REGIONS,
-AND RANK ENHANCERS BY READ DENSITY TO DISCOVER SUPER-ENHANCERS
-APRIL 11, 2013
-VERSION 0.1
-CONTACT: youngcomputation@wi.mit.edu
-'''
-
 import argparse
 
 from pathlib import Path
-from src.main_functions import regionStitching
-from src.utils.annotation import makeStartDict
-from src.utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
-from src.utils.file_helper import get_path, check_file, check_path
-from src.utils.locus import gffToLocusCollection, locusCollectionToGFF
+from stitching.region_stitching import regionStitching
+from stitching.region_stitching import makeStartDict
+from utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
+from utils.file_helper import get_path, check_file, check_path
+from classes.locus import gffToLocusCollection, locusCollectionToGFF
+
 
 def str2bool(
     v: str
@@ -54,7 +47,6 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument("-g", "--genome", type=str, help="Genome build (MM10, MM9, MM8, HG18, HG19, HG38)")
     parser.add_argument("-i", "--input", type=str, help="File (.bed, .gff or .gtf) containing binding sites to make enhancers")
     parser.add_argument("-b", "--bams", nargs="*", help="List of .bam files used")
-    
     parser.add_argument("-o", "--output", type=str, help="Output directory name")
     parser.add_argument("-r", "--rankby",  type=str, help="File (.bam) to rank enhancers by")
 
@@ -91,7 +83,6 @@ def main() -> None:
 
     #Initialising variables
     path = get_path()
-    # debug = False
     genomeDict = {
         "HG18": Path(path, "data", "annotation", "hg18_refseq.ucsc"),
         "HG19": Path(path, "data", "annotation", "hg19_refseq.ucsc"),
@@ -102,7 +93,7 @@ def main() -> None:
         }
     stitchWindow = int(args.stitch)
 
-    if args.control:        
+    if args.control:
         bamFileList = [args.rankby, args.control]
     else:
         bamFileList = [args.rankby]
@@ -117,9 +108,9 @@ def main() -> None:
     #     bamFileLIst = ROSE_utils.uniquify(bamFileList)
 
     #Ensuring necessary output directories exist
-    output = check_path(Path(path, args.output))
+    check_path(Path(path, args.output))
+    check_path(Path(path, args.output, "mappedGFF"))
     gffFolder = check_path(Path(path, args.output, "gff"))
-    mappedFolder = check_path(Path(path, args.output, "mappedGFF"))
 
     #Copying/creating the input .gff3 file
     if Path(args.input).suffix == ".bed":
@@ -177,8 +168,8 @@ def main() -> None:
 
     #Outputting the gff3 dataframe
     with open(stitchedGFFFile, "w") as f_out:
-        f_out.write("##gff-version 3\n")
-        f_out.write("##source-version ROSE\n")
+        f_out.write("##gff-version 3\n##source-version ROSE\n")
+        # f_out.write("##source-version ROSE\n")
         stitchedGFF.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 
