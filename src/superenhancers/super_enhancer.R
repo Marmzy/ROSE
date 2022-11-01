@@ -33,7 +33,7 @@ numPts_below_line <- function(vector, slope, x) {
     #' 
     #' @return Number of signal values below the diagonal at point [x,y]
     
-    #Calculate linear equation (y = ax+b)
+    #Calculate lienar equation (y = ax+b)
 	y <- vector[x]
 	b <- y-(slope*x)
 

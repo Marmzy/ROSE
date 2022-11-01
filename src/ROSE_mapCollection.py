@@ -5,8 +5,8 @@ import pandas as pd
 
 from collections import defaultdict
 from pathlib import Path
-from src.utils.file_helper import check_file
-from src.utils.locus import gffToLocusCollection, Locus, LocusCollection
+from utils.file_helper import check_file
+from classes.locus import gffToLocusCollection, Locus, LocusCollection
 
 
 def parseArgs() -> argparse.Namespace:

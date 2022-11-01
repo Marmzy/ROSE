@@ -2,8 +2,32 @@
 
 import pandas as pd
 
-from src.utils.locus import LocusCollection, makeTSSLocus
+from classes.locus import LocusCollection, makeTSSLocus
 from typing import List, Tuple
+
+
+def makeStartDict(
+    annotFile: str
+) -> pd.core.frame.DataFrame:
+    """Create subsetted dataframe from UCSC refseq file
+
+    Args:
+        annotFile (str): Path to UCSC refseq annotation file
+
+    Returns:
+        pd.core.frame.DataFrame: Subsetted annotation dataframe
+    """
+
+    #Reading the annotation file in as a dataframe
+    refseqTable = pd.read_csv(annotFile, sep="\t")
+
+    #Remove duplicate "name" entries and extract specific data
+    startDict = refseqTable[refseqTable.columns.intersection(["name", "strand", "chrom", "txStart", "txEnd", "name2"])].copy()
+    startDict.drop_duplicates(subset=["name"], inplace=True)
+    startDict.loc[startDict["strand"]=="-", ["txStart", "txEnd"]] = (startDict.loc[startDict["strand"] == "-", ("txEnd", "txStart")].values)
+    startDict.rename({"name": "id", "strand": "sense", "chrom": "chr", "txStart": "start", "txEnd": "end", "name2": "name"}, axis=1, inplace=True)
+
+    return startDict
 
 
 def regionStitching(
@@ -29,7 +53,7 @@ def regionStitching(
     #Initialising variables
     debugOutput = []
 
-    #filter out all bound regions that overlap the TSS of an ACTIVE GENE
+    #Filter regions that overlap the TSS of an active gene
     if removeTSS:
         
         #Initialising variables
@@ -48,7 +72,7 @@ def regionStitching(
             if len(tssCollection.getContainers(locus, "both")) > 0:
                 boundCollection.remove(locus)
                 debugOutput.append([str(locus), locus._ID, "Contained"])
-                removeTicker+=1
+                removeTicker += 1
 
         print(f"Removed {removeTicker} loci because they contain a TSS")
 

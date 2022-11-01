@@ -3,7 +3,7 @@
 import re
 import subprocess
 
-from src.utils.locus import Locus 
+from classes.locus import Locus 
 from typing import List
 
 
