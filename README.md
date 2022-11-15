@@ -1,39 +1,32 @@
-##ROSE: RANK ORDERING OF SUPER-ENHANCERS
+## ROSE
 
-ROSE IS RELEASED UNDER THE MIT X11 LICENSE
+### Description
 
-EXAMPLE ROSE DATA CAN BE FOUND HERE: <https://shorturl.at/nouzR>
+Rank Ordering of Super-Enhancers aka ROSE is a tool for identifying super-enhancers. It does this by separating super-enhancers from typical enhancers using sequencing data (.bam) given a file of previsously identified constituent enhancers (.gff). The original ROSE tool was developed by Charles Y. Lin, David A. Orlando and Brian J. Abraham at Young Lab Whitehead Institute/MIT. This new ROSE version is an attempt to update the code from Python 2 to 3, use newer versions of tools, make the code more readable to allow for better in-depth understanding of the algorithm and to increase the computational speed.
 
-For details of this analysis see:
+---
 
-Master Transcription Factors and Mediator Establish Super-Enhancers at Key Cell Identity Genes 
-Warren A. Whyte, David A. Orlando, Denes Hnisz, Brian J. Abraham, Charles Y. Lin, Michael H. Kagey, Peter B. Rahl, Tong Ihn Lee and Richard A. Young. Cell 153, 307-319, April 11, 2013
+### Citation
+
+*Master Transcription Factors and Mediator Establish Super-Enhancers at Key Cell Identity Genes*
+Warren A. Whyte, David A. Orlando, Denes Hnisz, Brian J. Abraham, Charles Y. Lin, Michael H. Kagey, Peter B. Rahl, Tong Ihn Lee and Richard A. Young. [Cell](https://www.sciencedirect.com/science/article/pii/S0092867413003929) 153, 307-319, April 11, 2013
 
 and
 
-Selective Inhibition of Tumor Oncogenes by Disruption of Super-enhancers 
-Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Christopher R. Vakoc, James E. Bradner, Tong Ihn Lee, and Richard A. Young. Cell 153, 320-334, April 11, 2013
+*Selective Inhibition of Tumor Oncogenes by Disruption of Super-enhancers* 
+Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Christopher R. Vakoc, James E. Bradner, Tong Ihn Lee, and Richard A. Young. [Cell](https://www.sciencedirect.com/science/article/pii/S0092867413003930) 153, 320-334, April 11, 2013
 
-Please cite these papers when using this code.
+---
 
-SOFTWARE AUTHORS: Charles Y. Lin, David A. Orlando, Brian J. Abraham
+### Requirements
 
-CONTACT: <young_computation@wi.mit.edu>
+- .bam files of sequencing reads for factor of interest (reads for control is recommended, but optional).
+	- .bam files must have chromosome IDs starting with "chr"
+	- .bam files must be sorted and indexed using [SAMtools](http://www.htslib.org/doc/samtools.html)
 
-ACKNOWLEDGEMENTS: Graham Ruby
-
-Developed using `Python 2.7.3`, `R 2.15.3`, and `SAMtools 0.1.18`
-
-PURPOSE: To create stitched enhancers, and to separate super-enhancers from typical enhancers using sequencing data (.bam) given a file of previously identified constituent enhancers (.gff)
-
-### 1. PREPARATION/REQUIREMENTS
-
-* .bam files of sequencing reads for factor of interest and control (WCE/IgG recommended).
-	* .bam files must have chromosome IDs starting with "chr"
-	* .bam files must be sorted and indexed using SAMtools in order for bamToGFF.py to work. (<http://samtools.sourceforge.net/samtools.shtml>)
-Code must be run from directory in which it is stored.
-* .gff file of constituent enhancers previously identified (gff format ref: <https://genome.ucsc.edu/FAQ/FAQformat.html#format3>).
-	* .gff must have the following columns:
+- .gff file of constituent enhancers previously identified.
+	- Input .gff file can be [.gff3 format](https://asia.ensembl.org/info/website/upload/gff3.html) (recommended), [.gtf format](https://asia.ensembl.org/info/website/upload/gff.html), .gff format or [.bed format](https://asia.ensembl.org/info/website/upload/bed.html)
+	- If .gff format, the file must have the following columns:
 		* chromosome (chr#)
 		* unique ID for each constituent enhancer region
 		* start of constituent
@@ -41,26 +34,47 @@ Code must be run from directory in which it is stored.
 		* strand (+,-,.)
 		* unique ID for each constituent enhancer region
 		
-		NOTE: if value for column 2 and 9 differ, value in column 2 will be used
+- .ucsc annotation file in UCSC table track format (https://genome.ucsc.edu/cgi-bin/hgTables)
 
-### 2. CONTENTS
+---
 
-`ROSE_main.py`: main program
+### Usage
 
-`ROSE_utils.py`: utility methods
+```
+Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optional flags]
+ #Required arguments
+ -g, --genome     Genome build (MM8, MM9, MM10, HG18, HG19, HG38)
+ -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites
+ -o, --output     Name of output directory where data will be stored
+ -r, --rankby     .bam file to rank enhancers by
 
-`ROSE_bamToGFF.py`: calculates density of .bam sequencing reads in .gff regions
+ #Additional arguments
+ -v, --verbose    Print verbose messages (default=true)
 
-`ROSE_callSuper.R`: ranks regions by their densities, creates a cutoff to separate super-enhancers from typical enhancers
+ #Additional arguments for ROSE_main.py
+ -c, --control    .bam file to rank enhancers by
+ -s, --stitch     Max linking distance for stitching (default=12500)
+ -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
 
-`ROSE_geneMapper.py`: assigns stitched enhancers to genes
-annotation/: Refseq gene tables for genomes MM8,MM9,MM10,HG18,HG19,HG38
+ #Additional arguments for ROSE_bamToGFF.py
+ -n, --sense      Strand to map to (default='both')
+ -f, --floor      Read floor threshold necessary to count towards density (default=1)
+ -x, --extension  Extends reads by n bp (default=200)
+ -p, --rpm        Normalizes density to reads per million (rpm) (default=true)
+ -m, --matrix     Variable bin sized matrix (default=1)
 
-In ROSE_DATA
+Example: ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
+```
 
-`example.sh`: sample call of ROSE_main.py
-data/: folder containing an example .gff input file and two example .bam files
-example/: folder containing example output generated by example.sh
+`ROSE.sh` will run ROSE from start to end. It will (amongst others) call the following scripts:
+	- `ROSE_main.py`: Stitches regions together to form enhancers
+	- `ROSE_bamToGFF.py`: Map .bam reads to stitched enhancers and calculate read density
+	- `ROSE_mapCollection.py`: Calculate stitched enhancers' read density signal
+	- `ROSE_callSuper.R`: Rank regions by their density signal and create cutoff to separate super-enhancers from typical enhancers
+
+Example ROSE data is proved by Young lab and can be downloaded from: <https://shorturl.at/nouzR>
+
+---
 
 ### 3. USAGE
 
@@ -132,14 +146,6 @@ All file names begin with the root of `INPUT_CONSTITUENT_GFF`
 
 `*_Plot_points.png`: visualization of the ranks of super-enhancers and the two groups. Stitched enhancers are ranked by their `RANKING_BAM` signal and their ranks are along the X axis. Corresponding `RANKING_BAM` signal on the Y axis.
 
-NOTES:
+---
 
-`mapEnhancerFromFactor.py` has a debug mode that can be enabled in the beginning of the main function.
-
-Enhancers in `INPUT_RANKING_GFF` may overlap each other in the input.
-
-This code can be easily parallelized by following the instructions in the main function of `mapEnhancerFromFactor` around line 369.
-
-Other gene lists may be added if downloaded from UCSC.
-
-Code from external sources is also cited in-line.
+Developed using `Python 3.8.10`, `R 4.2.1`, and `SAMtools 1.10`
