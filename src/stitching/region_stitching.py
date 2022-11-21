@@ -57,7 +57,7 @@ def regionStitching(
     if removeTSS:
         
         #Initialising variables
-        removeTicker=0
+        removeTicker = 0
 
         #Create loci centered around +/- tssWindow of transcribed genes
         tssLoci = [makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())]
@@ -71,7 +71,7 @@ def regionStitching(
         for locus in list(boundLoci):
             if len(tssCollection.getContainers(locus, "both")) > 0:
                 boundCollection.remove(locus)
-                debugOutput.append([str(locus), locus._ID, "Contained"])
+                debugOutput.append([str(locus), locus._ID, "Within_Gene_TSS"])
                 removeTicker += 1
 
         print(f"Removed {removeTicker} loci because they contain a TSS")
@@ -84,8 +84,7 @@ def regionStitching(
 
         #Initialising variables
         fixedLoci = []
-        originalTicker = 0
-        removeTicker = 0
+        originalTicker, removeTicker = 0, 0
 
         #Create loci centered around of transcribed genes
         tssLoci = [makeTSSLocus(row, 50) for row in zip(*startDict.to_dict("list").values())]
@@ -97,15 +96,14 @@ def regionStitching(
             #Get names of transcribed genes loci that overlap with the stiched locus
             overlappingTSSLoci = tssCollection.getOverlap(stitchedLocus, "both")
             tssNames = startDict.loc[startDict["id"].isin([str(tssLocus._ID) for tssLocus in overlappingTSSLoci]), "name"].values
-            tssNames = set(tssNames)
     
             #Remove stiched enhancer loci that overlap with 2+ gene loci and unstitch them
-            if len(tssNames) > 2:
+            if len(set(tssNames)) > 2:
                 originalLoci = boundCollection.getOverlap(stitchedLocus, "both")
                 originalTicker += len(originalLoci)
                 fixedLoci += originalLoci
-                debugOutput.append([str(stitchedLocus), stitchedLocus._ID, "Multiple_TSS"])
-                removeTicker+=1
+                debugOutput.append([str(stitchedLocus), stitchedLocus._ID, "Spans_Multiple_TSS"])
+                removeTicker += 1
             else:
                 fixedLoci.append(stitchedLocus)
 

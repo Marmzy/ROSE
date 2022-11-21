@@ -8,30 +8,7 @@ from classes.bam import Bam
 from classes.locus import Locus
 from collections import Counter
 from pathlib import Path
-from utils.file_helper import check_file, check_path
-
-
-def str2bool(
-    v: str
-) -> bool:
-    """Convert string to boolean
-
-    Args:
-        v (str): boolean string
-
-    Raises:
-        argparse.ArgumentTypeError: String is not named "true" or "false"
-
-    Returns:
-        bool: Booleanised string
-    """
-    
-    if v.lower() == "true":
-        return True
-    elif v.lower() == "false":
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
+from utils.file_helper import check_file, check_path, str2bool
 
 
 def parseArgs() -> argparse.Namespace:

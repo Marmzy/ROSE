@@ -1,36 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
+import pandas as pd
 
 from pathlib import Path
 from stitching.region_stitching import regionStitching
 from stitching.region_stitching import makeStartDict
 from utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
-from utils.file_helper import get_path, check_file, check_path
+from utils.file_helper import get_path, check_file, check_path, str2bool
 from classes.locus import gffToLocusCollection, locusCollectionToGFF
-
-
-def str2bool(
-    v: str
-) -> bool:
-    """Convert string to boolean
-
-    Args:
-        v (str): boolean string
-
-    Raises:
-        argparse.ArgumentTypeError: String is not named "true" or "false"
-
-    Returns:
-        bool: Booleanised string
-    """
-    
-    if v.lower() == "true":
-        return True
-    elif v.lower() == "false":
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 def parseArgs() -> argparse.Namespace:
@@ -54,6 +32,7 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument("-c", "--control",  type=str, nargs="?", help="File (.bam) to rank enhancer by")
     parser.add_argument("-s", "--stitch", type=int, nargs="?", default=12500, help="Max linking distance for stitching")
     parser.add_argument("-t", "--tss", type=int, nargs="?", default=0, help="Distance from TSS to exclude (0 = no TSS exclusion)")
+    parser.add_argument("-d", "--debug", type=str2bool, nargs="?", default=False, help="Output debugging messages")
     parser.add_argument("-v", "--verbose", type=str2bool, nargs="?", const=True, default=False, help="Print verbose messages")
 
 
@@ -93,44 +72,37 @@ def main() -> None:
         }
     stitchWindow = int(args.stitch)
 
-    if args.control:
-        bamFileList = [args.rankby, args.control]
-    else:
-        bamFileList = [args.rankby]
-
     if bool(int(args.tss)):
         suffix = "_TSS_distal"
     else:
         suffix = ""
 
     #Ensuring necessary output directories exist
-    check_path(Path(path, args.output))
-    check_path(Path(path, args.output, "mappedGFF"))
-    gffFolder = check_path(Path(path, args.output, "gff"))
+    gffFolder = Path(path, args.output, "gff")
 
     #Copying/creating the input .gff3 file
     if Path(args.input).suffix == ".bed":
         if args.verbose:
             print("Converting input .bed file to .gff3 format")
-        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
+        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         bed_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gff":
         if args.verbose:
             print("Converting input .gff file to .gff3 format")
-        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
+        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         gff_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gtf":
         if args.verbose:
             print("Converting input .gtf file to .gff3 format")
-        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
+        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         gtf_to_gff3(args.input, inputGFFFile, full=False)
 
     elif Path(args.input).suffix == ".gff3":
         if args.verbose:
             print("Checking input .gff3 file")
-        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
+        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         check_gff(args.input, inputGFFFile)
         
     else:
@@ -158,14 +130,17 @@ def main() -> None:
     stitchedGFF = locusCollectionToGFF(stitchedCollection)
     
     #Defining output file names
-    stitchedGFFName = f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}"
-    stitchedGFFFile = check_path(Path(Path(gffFolder), f"{stitchedGFFName}.gff3"))
-    debugOutFile = check_path(Path(Path(gffFolder), f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug"))
+    stitchedGFFFile = check_path(Path(gffFolder, f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.gff3"))
+    debugOutFile = check_path(Path(gffFolder, f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug"))
 
     #Outputting the gff3 dataframe
     with open(stitchedGFFFile, "w") as f_out:
         f_out.write("##gff-version 3\n##source-version ROSE\n")
         stitchedGFF.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
+
+    #Outputting the debugging information
+    if args.debug:
+        pd.DataFrame(debugOutput, columns=["Enhancer", "Region", "Reason"]).to_csv(debugOutFile, index=False, sep="\t")
 
 
 if __name__ == "__main__":

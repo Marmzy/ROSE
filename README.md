@@ -57,6 +57,7 @@ Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optiona
  -c, --control    .bam file to rank enhancers by
  -s, --stitch     Max linking distance for stitching (default=12500)
  -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
+-d, --debug      Enhancer stitching debugging output (default=False)
 
  #Additional arguments for ROSE_bamToGFF.py
  -n, --sense      Strand to map to (default='both')
@@ -87,6 +88,7 @@ Explanation of the ROSE output files
 
 - `*.gff3`: .gff3 formatted copy of --input file
 - `*_stitched.gff3`: .gff3 file of stitched enhancer loci. Names reflect the number of enhancers stitched together and contain leftmost enhancer ID.
+- `*_stitched.debug`: List of enhancer loci that have not been stitched together and their reasons why
 
 `~/output_dir/mappedGFF/`
 

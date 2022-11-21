@@ -21,6 +21,7 @@ function usage(){
     echo " -c, --control    .bam file to rank enhancers by"
     echo " -s, --stitch     Max linking distance for stitching (default=12500)"
     echo " -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)"
+    echo " -d, --debug      Enhancer stitching debugging output (default=False)"
     echo ""
     echo " #Additional arguments for ROSE_bamToGFF.py"
     echo " -n, --sense      Strand to map to (default='both')"
@@ -45,6 +46,7 @@ while [[ "$#" -gt 0 ]]; do
         -c|--control) VALUE_C="$2"; shift ;;
         -s|--stitch) STITCH="$2"; shift ;;
         -t|--tss) TSS="$2"; shift ;;
+        -d|--debug) DEBUG="$2"; shift ;;
         -n|--sense) SENSE="$2"; shift ;;
         -f|--floor) FLOOR="$2"; shift ;;
         -x|--extension) EXTENSION="$2"; shift ;;
@@ -62,6 +64,7 @@ if [ -z "$OUTPUT" ]; then usage "Output directory name is not specified"; else V
 if [ -z "$RANKBY" ]; then usage ".bam file is not specified"; else VALUE_R=$RANKBY; fi;
 if [ -z "$STITCH" ]; then VALUE_S=12500; else VALUE_S=$STITCH; fi;
 if [ -z "$TSS" ]; then VALUE_T=0; else VALUE_T=$TSS; fi;
+if [ -z "$DEBUG" ]; then VALUE_D=false; else VALUE_D=true; fi;
 if [ -z "$SENSE" ]; then VALUE_N="both"; else VALUE_N=$SENSE; fi;
 if [ -z "$FLOOR" ]; then VALUE_F=1; else VALUE_F=$FLOOR; fi;
 if [ -z "$EXTENSION" ]; then VALUE_X=200; else VALUE_X=$EXTENSION; fi;
@@ -76,7 +79,7 @@ if [ "$VALUE_C" ]; then
 fi
 
 #Create stitched enhancers .gff3 file
-python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -v $VALUE_V
+python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -d $VALUE_D -v $VALUE_V
 
 #Creating variable names
 ORIGINAL=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1).gff3")

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import errno
 import pathlib
 import os
@@ -37,7 +38,7 @@ def check_path(
         str: Original file name
     """
 
-    if not filename.is_dir():
+    if not Path(filename).parents[0].is_dir():
         filename.mkdir()
 
     return str(filename)
@@ -54,3 +55,26 @@ def get_path() -> str:
     path = "/".join(str(Path.cwd()).split("/")[:idx+1])
 
     return path
+
+
+def str2bool(
+    v: str
+) -> bool:
+    """Convert string to boolean
+
+    Args:
+        v (str): boolean string
+
+    Raises:
+        argparse.ArgumentTypeError: String is not named "true" or "false"
+
+    Returns:
+        bool: Booleanised string
+    """
+    
+    if v.lower() == "true":
+        return True
+    elif v.lower() == "false":
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
