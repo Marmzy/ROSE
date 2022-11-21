@@ -7,19 +7,20 @@ function usage(){
     if [ -n "$1" ]; then
         echo -e "${RED}→ $1${CLEAR}"
     fi
-    echo "Usage: $0 [-h help] [-g genome] [-i input] [-o output] [-r rankby] [-b bams] [-c control] [-s stitch] [-t tss] [-v verbose]"
+    echo "Usage: $0 [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optional flags]"
     echo " #Required arguments"
-    echo " -g, --genome     Genome build (MM10, MM9, MM8, HG18, HG19, HG38)"
+    echo " -g, --genome     Genome build (MM8, MM9, MM10, HG18, HG19, HG38)"
     echo " -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites"
     echo " -o, --output     Name of output directory where data will be stored"
     echo " -r, --rankby     .bam file to rank enhancers by"
     echo ""
+    echo " #Additional arguments"
+    echo " -v, --verbose    Print verbose messages (default=true)"
+    echo ""
     echo " #Additional arguments for ROSE_main.py"
-    echo " -b, --bams       Comma seperated list of additional files (.bam) to map to"
     echo " -c, --control    .bam file to rank enhancers by"
     echo " -s, --stitch     Max linking distance for stitching (default=12500)"
     echo " -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)"
-    echo " -v, --verbose    Print verbose messages"
     echo ""
     echo " #Additional arguments for ROSE_bamToGFF.py"
     echo " -n, --sense      Strand to map to (default='both')"
@@ -27,7 +28,6 @@ function usage(){
     echo " -x, --extension  Extends reads by n bp (default=200)"
     echo " -p, --rpm        Normalizes density to reads per million (rpm) (default=true)"
     echo " -m, --matrix     Variable bin sized matrix (default=1)"
-    echo " -v, --verbose    Print verbose messages (default=true)"
     echo ""
     echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
     exit 1
@@ -42,7 +42,6 @@ while [[ "$#" -gt 0 ]]; do
         -i|--input) INPUT="$2"; shift ;;
         -o|--output) OUTPUT="$2"; shift ;;
         -r|--rankby) RANKBY="$2"; shift ;;
-        -b|--bams) BAMS="$2"; shift ;;
         -c|--control) VALUE_C="$2"; shift ;;
         -s|--stitch) STITCH="$2"; shift ;;
         -t|--tss) TSS="$2"; shift ;;
