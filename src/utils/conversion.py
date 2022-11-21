@@ -86,7 +86,7 @@ def check_gff(
     #If .gff3 seqid column values do not start with "chr", see if they are Human NCBI refseq accession numbers and replace them
     if "chr" not in df.iloc[:, 0].values:
         df.iloc[:, 0] = df.iloc[:, 0].replace(RefseqAccHuman, regex=True)
-        chr_df = df.loc[df.iloc[:, 0].str.startswith('chr', na=False)]
+        chr_df = df.loc[df.iloc[:, 0].str.startswith("chr", na=False)]
 
         #Outputting the gff3 dataframe
         if len(df) == len(chr_df):
