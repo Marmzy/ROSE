@@ -45,7 +45,7 @@ def check_gff(
     """Check if .gff3 file's seqid column values start with 'chr'
 
     Args:
-        input (str): Input .ggf3 file path
+        input (str): Input .gff3 file path
         output (str): Output .gff3 file path
 
     Raises:
@@ -104,6 +104,12 @@ def gff_to_gff3(
     input: str,
     output: str
 ) -> None:
+    """Convert .gff file to .gff3 file (modeled after R's rtracklayer)
+
+    Args:
+        input (str): Input .gff file path
+        output (str): Output .gff3 file path
+    """
 
     #Reading the .gff file as a dataframe
     df = pd.read_csv(input, sep="\t", header=None, comment="#")
@@ -129,7 +135,7 @@ def gtf_to_gff3(
     """Convert .gtf file to .gff3 file (modeled after R's rtracklayer)
 
     Args:
-        input (str): Input .bed file path
+        input (str): Input .gtf file path
         output (str): Output .gff3 file path
         full (bool, optional): Boolean to fully convert the .gtf atttributes to .gff3 format. Defaults to False.
     """

@@ -52,7 +52,7 @@ cutoff_options <- calculate_cutoff(as.matrix(rankBy_vector))
 #Get superenhancers based on cut-off
 superEnhancerRows <- which(rankBy_vector > cutoff_options$absolute)
 typicalEnhancers <- setdiff(1:nrow(stitched_regions), superEnhancerRows)
-enhancerDescription <- paste(basename(opt$gff)," Enhancers\nCreated from ", tail(unlist(strsplit(opt$density, "/")), n=1), "\nRanked by ", colnames(stitched_regions)[7], "\nUsing cutoff of ", cutoff_options$absolute, " for Super-Enhancers", sep="", collapse="")
+enhancerDescription <- paste(basename(opt$gff), "Enhancers\nCreated from ", tail(unlist(strsplit(opt$density, "/")), n=1), "\nRanked by ", colnames(stitched_regions)[7], "\nUsing cutoff of ", cutoff_options$absolute, " for Super-Enhancers", sep="", collapse="")
 
 #Get base .gff file name
 gff <- tools::file_path_sans_ext(basename(opt$gff))
@@ -81,12 +81,3 @@ superTableFile = paste(opt$output, "/", gff, "_SuperEnhancers.table.txt", sep=""
 
 writeSuperEnhancer_table(stitched_regions, enhancerDescription, enhancerTableFile, additionalData=additionalTableData)
 writeSuperEnhancer_table(true_super_enhancers, enhancerDescription, superTableFile, additionalData=additionalTableData[superEnhancerRows,])
-
-
-
-
-
-
-
-
-	

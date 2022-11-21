@@ -41,7 +41,7 @@ def parseArgs() -> argparse.Namespace:
     """
 
     parser = argparse.ArgumentParser(description="Stitch regions together to form enhancers, map read density to stitched regions and \
-                                                  rank enhancers by read desnity to discover super-enhancers")
+                                                  rank enhancers by read density to discover super-enhancers")
 
     #Required arguments
     parser.add_argument("-g", "--genome", type=str, help="Genome build (MM10, MM9, MM8, HG18, HG19, HG38)")
@@ -103,10 +103,6 @@ def main() -> None:
     else:
         suffix = ""
 
-    # if options.bams:
-    #     bamFileList += options.bams.split(',')
-    #     bamFileLIst = ROSE_utils.uniquify(bamFileList)
-
     #Ensuring necessary output directories exist
     check_path(Path(path, args.output))
     check_path(Path(path, args.output, "mappedGFF"))
@@ -116,25 +112,25 @@ def main() -> None:
     if Path(args.input).suffix == ".bed":
         if args.verbose:
             print("Converting input .bed file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
+        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
         bed_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gff":
         if args.verbose:
-            print("Converting input .gtf file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
+            print("Converting input .gff file to .gff3 format")
+        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
         gff_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gtf":
         if args.verbose:
             print("Converting input .gtf file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
+        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
         gtf_to_gff3(args.input, inputGFFFile, full=False)
 
     elif Path(args.input).suffix == ".gff3":
         if args.verbose:
             print("Checking input .gff3 file")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
+        inputGFFFile = str(check_file(Path(path, "output", "gff", Path(args.input).stem))) + ".gff3"
         check_gff(args.input, inputGFFFile)
         
     else:
@@ -142,14 +138,14 @@ def main() -> None:
 
     #Using the .gff3 file to define enhancers
     if args.verbose:
-        print(f"Using {inputGFFFile} as the input .gff file\n")
+        print(f"Using {inputGFFFile} as the input .gff3 file\n")
     inputName = str(Path(inputGFFFile).stem)
 
     #Making the start dict
     startDict = makeStartDict(check_file(str(genomeDict[args.genome.upper()])))
 
     #Loading enhancers as loci collection object
-    referenceCollection = gffToLocusCollection(check_file(inputGFFFile))
+    referenceCollection = gffToLocusCollection(inputGFFFile)
 
     #Stitching regions together
     if args.verbose:
@@ -163,13 +159,12 @@ def main() -> None:
     
     #Defining output file names
     stitchedGFFName = f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}"
-    stitchedGFFFile = Path(Path(gffFolder), f"{stitchedGFFName}.gff3")
-    debugOutFile = Path(Path(gffFolder), f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug")
+    stitchedGFFFile = check_path(Path(Path(gffFolder), f"{stitchedGFFName}.gff3"))
+    debugOutFile = check_path(Path(Path(gffFolder), f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug"))
 
     #Outputting the gff3 dataframe
     with open(stitchedGFFFile, "w") as f_out:
         f_out.write("##gff-version 3\n##source-version ROSE\n")
-        # f_out.write("##source-version ROSE\n")
         stitchedGFF.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 

@@ -4,11 +4,11 @@ import argparse
 import pandas as pd
 import re
 
+from classes.bam import Bam
+from classes.locus import Locus
 from collections import Counter
 from pathlib import Path
-from utils.file_helper import check_file
-from classes.locus import Locus
-from classes.bam import Bam
+from utils.file_helper import check_file, check_path
 
 
 def str2bool(
@@ -99,7 +99,7 @@ def main() -> None:
     bam.checkChrStatus()
 
     #Reading the gff3 file as a dataframe
-    gff_df = pd.read_csv(args.input, sep="\t", header=None, comment="#")
+    gff_df = pd.read_csv(check_file(args.input), sep="\t", header=None, comment="#")
 
     #Loop over stitched enhancer loci
     for row in zip(*gff_df.to_dict("list").values()):
@@ -168,7 +168,7 @@ def main() -> None:
 
     #Outputting per-bin read density
     out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(args.bam).name)}" for n in range(1, int(args.matrix)+1)])
-    out_name = Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt")
+    out_name = check_path(Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(args.bam).name}_mapped.txt"))
     out_df.to_csv(out_name, sep="\t", index=False)
 
                 

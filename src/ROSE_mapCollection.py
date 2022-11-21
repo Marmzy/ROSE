@@ -5,7 +5,7 @@ import pandas as pd
 
 from collections import defaultdict
 from pathlib import Path
-from utils.file_helper import check_file
+from utils.file_helper import check_file, check_path
 from classes.locus import gffToLocusCollection, Locus, LocusCollection
 
 
@@ -101,7 +101,7 @@ def mapCollection() -> None:
 
     #Outputting stitched enhancer loci signal density values per .bam file
     out_df = pd.DataFrame(locusTable[1:], columns=locusTable[0])
-    out_name = Path(Path(args.dir).parents[0], f"{Path(args.stitch).stem}_enhancer_region_map.txt")
+    out_name = check_path(Path(Path(args.dir).parents[0], f"{Path(args.stitch).stem}_enhancer_region_map.txt"))
     out_df.to_csv(out_name, sep="\t", index=False)
 
 
