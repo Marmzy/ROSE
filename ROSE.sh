@@ -13,6 +13,7 @@ function usage(){
     echo " -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites"
     echo " -o, --output     Name of output directory where data will be stored"
     echo " -r, --rankby     .bam file to rank enhancers by"
+    echo " -a, --annot      UCSC table track annotation file"
     echo ""
     echo " #Additional arguments"
     echo " -v, --verbose    Print verbose messages (default=true)"
@@ -30,7 +31,7 @@ function usage(){
     echo " -p, --rpm        Normalizes density to reads per million (rpm) (default=true)"
     echo " -m, --matrix     Variable bin sized matrix (default=1)"
     echo ""
-    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
+    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
     exit 1
 }
 
@@ -43,6 +44,7 @@ while [[ "$#" -gt 0 ]]; do
         -i|--input) INPUT="$2"; shift ;;
         -o|--output) OUTPUT="$2"; shift ;;
         -r|--rankby) RANKBY="$2"; shift ;;
+        -a|--annot) ANNOT="$2"; shift ;;
         -c|--control) VALUE_C="$2"; shift ;;
         -s|--stitch) STITCH="$2"; shift ;;
         -t|--tss) TSS="$2"; shift ;;
@@ -62,6 +64,7 @@ if [ -z "$GENOME" ]; then usage "Genome build is not specified"; else VALUE_G=$G
 if [ -z "$INPUT" ]; then usage "Input file is not specified"; else VALUE_I=$INPUT; fi;
 if [ -z "$OUTPUT" ]; then usage "Output directory name is not specified"; else VALUE_O=$OUTPUT; fi;
 if [ -z "$RANKBY" ]; then usage ".bam file is not specified"; else VALUE_R=$RANKBY; fi;
+if [ -z "$ANNOT" ]; then usage "UCSC annotation file is not specified"; else VALUE_A=$ANNOT; fi;
 if [ -z "$STITCH" ]; then VALUE_S=12500; else VALUE_S=$STITCH; fi;
 if [ -z "$TSS" ]; then VALUE_T=0; else VALUE_T=$TSS; fi;
 if [ -z "$DEBUG" ]; then VALUE_D=false; else VALUE_D=true; fi;
@@ -79,7 +82,7 @@ if [ "$VALUE_C" ]; then
 fi
 
 #Create stitched enhancers .gff3 file
-python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -d $VALUE_D -v $VALUE_V
+python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -a $VALUE_A -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -d $VALUE_D -v $VALUE_V
 
 #Creating variable names
 ORIGINAL=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I} | cut -d "." -f 1).gff3")
