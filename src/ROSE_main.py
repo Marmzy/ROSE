@@ -3,12 +3,11 @@
 import argparse
 import pandas as pd
 
+from classes.locus import gffToLocusCollection, locusCollectionToGFF
 from pathlib import Path
-from stitching.region_stitching import regionStitching
-from stitching.region_stitching import makeStartDict
+from stitching.region_stitching import makeStartDict, regionStitching
 from utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
 from utils.file_helper import get_path, check_file, check_path, str2bool
-from classes.locus import gffToLocusCollection, locusCollectionToGFF
 
 
 def parseArgs() -> argparse.Namespace:
@@ -27,6 +26,7 @@ def parseArgs() -> argparse.Namespace:
     parser.add_argument("-b", "--bams", nargs="*", help="List of .bam files used")
     parser.add_argument("-o", "--output", type=str, help="Output directory name")
     parser.add_argument("-r", "--rankby",  type=str, help="File (.bam) to rank enhancers by")
+    parser.add_argument("-a", "--annot", type=str, help="UCSC (.ucsc) annotation file")
 
     #Optional arguments
     parser.add_argument("-c", "--control",  type=str, nargs="?", help="File (.bam) to rank enhancer by")
@@ -45,6 +45,7 @@ def parseArgs() -> argparse.Namespace:
     #Ensuring that argument files exist
     check_file(args.input)
     check_file(args.rankby)
+    check_file(args.annot)
     check_file(args.control)
 
     return args
@@ -62,14 +63,6 @@ def main() -> None:
 
     #Initialising variables
     path = get_path()
-    genomeDict = {
-        "HG18": Path(path, "data", "annotation", "hg18_refseq.ucsc"),
-        "HG19": Path(path, "data", "annotation", "hg19_refseq.ucsc"),
-	    "HG38": Path(path, "data", "annotation", "hg38_refseq.ucsc"),
-        "MM8":  Path(path, "data", "annotation", "mm8_refseq.ucsc"),
-        "MM9":  Path(path, "data", "annotation", "mm9_refseq.ucsc"),
-        "MM10": Path(path, "data", "annotation", "mm10_refseq.ucsc"),
-        }
     stitchWindow = int(args.stitch)
 
     if bool(int(args.tss)):
@@ -114,7 +107,7 @@ def main() -> None:
     inputName = str(Path(inputGFFFile).stem)
 
     #Making the start dict
-    startDict = makeStartDict(check_file(str(genomeDict[args.genome.upper()])))
+    startDict = makeStartDict(args.annot)
 
     #Loading enhancers as loci collection object
     referenceCollection = gffToLocusCollection(inputGFFFile)

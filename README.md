@@ -49,6 +49,7 @@ Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optiona
  -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites
  -o, --output     Name of output directory where data will be stored
  -r, --rankby     .bam file to rank enhancers by
+ -a, --annot      UCSC table track annotation file
 
  #Additional arguments
  -v, --verbose    Print verbose messages (default=true)
@@ -57,7 +58,7 @@ Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optiona
  -c, --control    .bam file to rank enhancers by
  -s, --stitch     Max linking distance for stitching (default=12500)
  -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
--d, --debug      Enhancer stitching debugging output (default=False)
+ -d, --debug      Enhancer stitching debugging output (default=False)
 
  #Additional arguments for ROSE_bamToGFF.py
  -n, --sense      Strand to map to (default='both')
@@ -66,7 +67,7 @@ Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optiona
  -p, --rpm        Normalizes density to reads per million (rpm) (default=true)
  -m, --matrix     Variable bin sized matrix (default=1)
 
-Example: ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
+Example: ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
 ```
 
 `ROSE.sh` will run ROSE from start to end. It will (amongst others) call the following scripts:
