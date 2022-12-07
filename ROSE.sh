@@ -107,3 +107,10 @@ if [ "$VALUE_C" ]; then
 else
     Rscript src/ROSE_callSuper.R -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I
 fi
+
+#Identifing and visualising superenhancers
+if [ "$VALUE_C" ]; then
+    python3 src/ROSE_callSuper.py -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I -c $VALUE_C
+else
+    python3 src/ROSE_callSuper.py -o ${PWD}/${VALUE_O} -d $DENSITY -g $VALUE_I
+fi

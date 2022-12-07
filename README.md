@@ -2,9 +2,9 @@
 
 ### Description
 
-Rank Ordering of Super-Enhancers aka ROSE is a tool for identifying super-enhancers. It does this by separating super-enhancers from typical enhancers using sequencing data (.bam) given a file of previsously identified constituent enhancers (.gff). The original ROSE tool was developed by Charles Y. Lin, David A. Orlando and Brian J. Abraham at Young Lab Whitehead Institute/MIT. This new ROSE version is an attempt to update the code from Python 2 to 3, use newer versions of tools, make the code more readable to allow for better in-depth understanding of the algorithm and to increase the computational speed.
+Rank Ordering of Super-Enhancers aka ROSE is a tool for identifying super-enhancers. It does this by separating super-enhancers from typical enhancers using sequencing data (.bam) given a file of previsously identified constituent enhancers (.gff). The original ROSE tool was developed by Charles Y. Lin, David A. Orlando and Brian J. Abraham at Young Lab Whitehead Institute/MIT. This new ROSE version is an attempt to update the code from Python 2 to 3, convert the few R code to Python, use newer versions of tools, make the code more readable to allow for better in-depth understanding of the algorithm and to increase the computational speed.
 
-This version of ROSE was developed using `Python 3.8.10`, `R 4.2.1`, and `SAMtools 1.10`
+This version of ROSE was developed using `Python 3.8.10`, and `SAMtools 1.10`
 
 ---
 
