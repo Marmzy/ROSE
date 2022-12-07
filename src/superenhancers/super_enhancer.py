@@ -9,13 +9,13 @@ from scipy.optimize import minimize_scalar
 def calculate_cutoff(
     vector: np.ndarray
 ) -> np.float:
-    """Calculate superenhancer signal density cutoff value
+    """Calculate superenhancer signal density cut-off value
 
     Args:
         vector (np.ndarray): Array of (control corrected) stitched enhancer loci density signals
 
     Returns:
-        np.float: Density signal cutoff value to delineate superenhancers from normal enhaners 
+        np.float: Density signal cut-off value to delineate superenhancers from normal enhaners 
     """
 
     #Get the slope of the line to slide
@@ -24,7 +24,7 @@ def calculate_cutoff(
 
     #Minimising the (control corrected) stitched enhancer loci density signal function (aka finding the tangent of the function)
     x_min = math.floor(minimize_scalar(numPts_below_line, bounds=(1, len(vector)), args=(vector, slope), method="bounded")["x"])
-    y_cutoff = vector[x_min]
+    y_cutoff = vector[x_min-1]
 
     return y_cutoff
 
