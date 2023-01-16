@@ -30,7 +30,7 @@ def check_file(
 def check_path(
     filename: pathlib.PosixPath
 ) -> str:
-    """Checks the path of a given file and recursively creates new directories if necessary
+    """Checks the path of a given file and creates new directories if necessary
 
     Args:
         filename (pathlib.PosixPath): Complete path to file
@@ -39,7 +39,7 @@ def check_path(
     """
 
     if not Path(filename).parents[0].is_dir():
-        filename.parents[0].mkdir(parents=True)
+        filename.mkdir()
 
     return str(filename)
 
