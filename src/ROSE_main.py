@@ -63,43 +63,32 @@ def main() -> None:
 
     #Initialising variables
     path = get_path()
-    stitchWindow = int(args.stitch)
-
-    if bool(int(args.tss)):
-        suffix = "_TSS_distal"
-    else:
-        suffix = ""
-
-    #Ensuring necessary output directories exist
-    gffFolder = Path(path, args.output, "gff")
+    inputGFFFile = check_path(Path(path, args.output, "gff", Path(args.input).stem)) + ".gff3"
+    suffix = "_TSS_distal" if bool(int(args.tss)) else ""
 
     #Copying/creating the input .gff3 file
     if Path(args.input).suffix == ".bed":
         if args.verbose:
             print("Converting input .bed file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         bed_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gff":
         if args.verbose:
             print("Converting input .gff file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         gff_to_gff3(args.input, inputGFFFile)
 
     elif Path(args.input).suffix == ".gtf":
         if args.verbose:
             print("Converting input .gtf file to .gff3 format")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         gtf_to_gff3(args.input, inputGFFFile, full=False)
 
     elif Path(args.input).suffix == ".gff3":
         if args.verbose:
             print("Checking input .gff3 file")
-        inputGFFFile = str(Path(path, "output", "gff", Path(args.input).stem)) + ".gff3"
         check_gff(args.input, inputGFFFile)
         
     else:
-        raise ValueError("Input file must be a .bed, .gtf, .gff or gff3 file")
+        raise ValueError("Input file must be a .bed, .gtf, .gff or .gff3 file")
 
     #Using the .gff3 file to define enhancers
     if args.verbose:
@@ -123,8 +112,8 @@ def main() -> None:
     stitchedGFF = locusCollectionToGFF(stitchedCollection)
     
     #Defining output file names
-    stitchedGFFFile = check_path(Path(gffFolder, f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.gff3"))
-    debugOutFile = check_path(Path(gffFolder, f"{inputName}_{stitchWindow/1000}kb_stitched{suffix}.debug"))
+    stitchedGFFFile = check_path(Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.gff3"))
+    debugOutFile = check_path(Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.debug"))
 
     #Outputting the gff3 dataframe
     with open(stitchedGFFFile, "w") as f_out:

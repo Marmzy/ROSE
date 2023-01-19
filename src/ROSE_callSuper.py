@@ -39,6 +39,8 @@ def parseArgs() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Find superenhancers among stitched enhancer loci
+    """
 
     #Parse arguments from the command line
     args = parseArgs()
