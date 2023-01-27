@@ -75,7 +75,7 @@ Example: ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_M
 - `ROSE_main.py`: Stitches regions together to form stitched enhancers
 - `ROSE_bamToGFF.py`: Map .bam reads to stitched enhancers and calculate read density
 - `ROSE_mapCollection.py`: Calculate stitched enhancers' read density signal
-- `ROSE_callSuper.R`: Rank regions by their density signal and create cutoff to separate super-enhancers from typical enhancers
+- `ROSE_callSuper.py`: Rank regions by their density signal and create cutoff to separate super-enhancers from typical enhancers
 
 Example ROSE data is provided by Young lab and can be downloaded from: <https://shorturl.at/nouzR>
 

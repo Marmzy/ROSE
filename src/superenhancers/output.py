@@ -46,7 +46,7 @@ def convert_stitched_to_bed(
 
 def hockey_stick_plot(
     vector: np.ndarray,
-    y_cutoff: np.float,
+    y_cutoff: float,
     super_enhancer_rows: np.ndarray,
     out: str,
     gff: str,

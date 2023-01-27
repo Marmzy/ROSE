@@ -8,7 +8,7 @@ from scipy.optimize import minimize_scalar
 
 def calculate_cutoff(
     vector: np.ndarray
-) -> np.float:
+) -> float:
     """Calculate superenhancer signal density cut-off value
 
     Args:
@@ -32,7 +32,7 @@ def calculate_cutoff(
 def numPts_below_line(
     x: float,
     vector: np.ndarray,
-    slope: np.float64
+    slope: float
 ) -> int:
     """Stitched enhancer loci density signal function to minimise
 
