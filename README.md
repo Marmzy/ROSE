@@ -103,3 +103,11 @@ Explanation of the ROSE output files
 - `*_SuperEnhancers.table.txt`: Ranking by (control corrected) read density signal of super-enhancer stitched enhancer loci only
 - `*_Enhancers_withSuper.bed`: .bed file to be loaded into the UCSC browser to visualize super-enhancers and typical enhancers
 - `*_Plot_points.png`: Visualisation of the stitched enhancer loci read density signals
+
+---
+
+### Docker
+
+[nottuh/rose](https://hub.docker.com/r/nottuh/rose) is the official Docker image for this version ROSE. It contains all necessary tools and packages to run ROSE smoothly. After downloading the image from Docker Hub, ROSE can easily be run by mounting the directory containing the input data to the image. Below is an example of how to run ROSE with the Docker image, using the example data provided by Young lab:
+
+`docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose_01 bash ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output_docker -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true`
