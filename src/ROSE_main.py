@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import glob
 import pandas as pd
 
 from classes.locus import gffToLocusCollection, locusCollectionToGFF
@@ -21,15 +22,11 @@ def parseArgs() -> argparse.Namespace:
                                                   rank enhancers by read density to discover super-enhancers")
 
     #Required arguments
-    parser.add_argument("-g", "--genome", type=str, help="Genome build (MM10, MM9, MM8, HG18, HG19, HG38)")
     parser.add_argument("-i", "--input", type=str, help="File (.bed, .gff or .gtf) containing binding sites to make enhancers")
-    parser.add_argument("-b", "--bams", nargs="*", help="List of .bam files used")
     parser.add_argument("-o", "--output", type=str, help="Output directory name")
-    parser.add_argument("-r", "--rankby",  type=str, help="File (.bam) to rank enhancers by")
     parser.add_argument("-a", "--annot", type=str, help="UCSC (.ucsc) annotation file")
 
     #Optional arguments
-    parser.add_argument("-c", "--control",  type=str, nargs="?", help="File (.bam) to rank enhancer by")
     parser.add_argument("-s", "--stitch", type=int, nargs="?", default=12500, help="Max linking distance for stitching")
     parser.add_argument("-t", "--tss", type=int, nargs="?", default=0, help="Distance from TSS to exclude (0 = no TSS exclusion)")
     parser.add_argument("-d", "--debug", type=str2bool, nargs="?", default=False, help="Output debugging messages")
@@ -44,9 +41,7 @@ def parseArgs() -> argparse.Namespace:
 
     #Ensuring that argument files exist
     check_file(args.input)
-    check_file(args.rankby)
     check_file(args.annot)
-    check_file(args.control)
 
     return args
 
