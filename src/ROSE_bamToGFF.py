@@ -9,6 +9,7 @@ import re
 from classes.bam import Bam
 from classes.locus import Locus
 from collections import Counter
+from itertools import product
 from pathlib import Path
 from typing import List, Union
 from utils.file_helper import check_file, check_path, str2bool
@@ -25,7 +26,9 @@ def parseArgs() -> argparse.Namespace:
 
     #Required arguments
     parser.add_argument("-b", "--bam", type=str, help="Directory containing .bam files")
+    parser.add_argument("-c", "--control", type=str, help="Control .bam file")
     parser.add_argument("-i", "--input", type=str, help="Stitched enhancer loci .gff3 file")
+    parser.add_argument("-o", "--original", type=str, help="Enhancer loci .gff3 file")
 
     #Optional arguments
     parser.add_argument("-s", "--sense", type=str, nargs="?", default="both", help="Strand to map to (default: 'both')")
@@ -43,7 +46,9 @@ def parseArgs() -> argparse.Namespace:
     print(f"{args}\n")
 
     #Ensuring that files exist
+    check_file(args.control)
     check_file(args.input)
+    check_file(args.original)
 
     #Ensuring sense argument makes sense
     if args.sense not in ["+", "-", ".", "both"]:
@@ -53,7 +58,7 @@ def parseArgs() -> argparse.Namespace:
 
 
 def map_reads(
-    bam: str,
+    bam_file: str,
     gff_df: pd.core.frame.DataFrame,
     rpm: bool,
     extension: int,
@@ -65,7 +70,7 @@ def map_reads(
     """Map reads to stitched enhancer loci and calculate read density
 
     Args:
-        bam (str): .bam file whose reads are to be mapped
+        bam_file (str): .bam file whose reads are to be mapped
         gff_df (pd.core.frame.DataFrame): Stitched enhancer loci dataframe
         rpm (bool): Boolean whether to normalize read density
         extension (int): Number of bp to extend reads by
@@ -82,7 +87,7 @@ def map_reads(
     newGFF = []
 
     #Create Bam class
-    bam = Bam(bam)
+    bam = Bam(bam_file)
     mmr = round(bam.getTotalReads()/1000000, 4) if rpm else 1
 
     if verbose:
@@ -168,20 +173,23 @@ def main() -> None:
 
     #Reading the gff3 file as a dataframe
     gff_df = pd.read_csv(check_file(args.input), sep="\t", header=None, comment="#")
+    original_df = pd.read_csv(check_file(args.original), sep="\t", header=None, comment="#")
 
     #Loading the .bam files from the directory and making sure they are indexed
     bam_files = glob.glob(str(Path(args.bam, "*.bam")))
+    bam_files.append(args.control)
+
     for bam in bam_files:
         check_file(f"{bam}.bai")
 
     #Map reads to stitched enhancer loci and calculate read density
     with mp.Pool(mp.cpu_count()) as p:
-        results = p.starmap(map_reads, [(bam, gff_df, args.rpm, args.extension, args.sense, args.floor, args.matrix, args.verbose) for bam in bam_files])
-
+        results = p.starmap(map_reads, [(bam, gff, args.rpm, args.extension, args.sense, args.floor, args.matrix, args.verbose) for bam, gff in product(bam_files, [gff_df, original_df])])
+        
     #Outputting per-bin read density
-    for newGFF, bam in zip(results, bam_files):
+    for newGFF, (bam, gff) in zip(results, product(bam_files, [args.input, args.original])):
         out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(args.matrix)+1)])
-        out_name = check_path(Path(Path(args.input).parents[1], "mappedGFF", f"{Path(args.input).stem}_{Path(bam).name}_mapped.txt"))
+        out_name = check_path(Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).name}_mapped.txt"))
         out_df.to_csv(out_name, sep="\t", index=False)
 
                 
