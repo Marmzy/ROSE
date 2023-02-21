@@ -266,15 +266,15 @@ class LocusCollection:
         self,
         locus: Locus,
         sense: str = "sense"
-    ) -> TypedDict:
-        """Get enhancer loci that overlap with a given enhaner locus
+    ) -> set:
+        """Get enhancer loci that overlap with a given enhancer locus
 
         Args:
             locus (Locus): Locus against which overlapping loci are to be searched for
-            sense (str, optional): Locus strnd. Defaults to "sense".
+            sense (str, optional): Locus strand. Defaults to "sense".
 
         Returns:
-            TypedDict: Dict keys, with overlapping loci as keys
+            set: Set of overlapping loci
         """
 
         #Get all loci from the enhancer collection that overlap with the enhancer locus
@@ -282,11 +282,11 @@ class LocusCollection:
 
         #Remove loci that don't really overlap
         if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.overlaps(locus), matches)}
+            realMatches = {lcs for lcs in matches if lcs.overlaps(locus)}
         if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().overlaps(locus), matches)}
+            realMatches = {lcs for lcs in matches if lcs.getAntisenseLocus().overlaps(locus)}
 
-        return realMatches.keys()
+        return realMatches
 
     def stitchCollection(
         self,
@@ -339,13 +339,14 @@ class LocusCollection:
         self,
         locus: Locus
     ) -> None:
-        """Add locus data to dictionary in following order: chromosome+strand, region, Locus object
+        """Add locus data to dictionary in the following order: chromosome+strand, region, Locus object
 
         Args:
             locus (Locus): Enhancer locus region
         """
 
-        if locus not in self._loci: ## <- if condition can be removed?
+        #Add unique enhancer locus regions
+        if locus not in self._loci:
             self._loci[locus] = None
             if locus._sense == ".":
                 chrKeyList = [f"{locus._chr}+", f"{locus._chr}-"]
@@ -372,6 +373,7 @@ class LocusCollection:
             range: Locus region key range
         """
 
+        #Create range based on the amount of window sizes that can fit in the locus region
         start = locus._start // self._winSize
         end = locus._end // self._winSize + 1
         return range(start, end)

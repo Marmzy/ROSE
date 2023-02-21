@@ -61,13 +61,12 @@ def regionStitching(
 
         #Create loci centered around +/- tssWindow of transcribed genes
         tssLoci = [makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())]
-        tssCollection = LocusCollection(tssLoci, 50)  ## -> isn't 500 the standard?? 
+        tssCollection = LocusCollection(tssLoci, 50)
 
         #Get all enhancer loci
         boundLoci = boundCollection.getLoci()
 
-        #Loop over enhancer loci and remove those that are enveloped within an active gene's
-        #TSS +/- tssWindow region 
+        #Loop over enhancer loci and remove those that are enveloped within an active gene's TSS +/- tssWindow region 
         for locus in list(boundLoci):
             if len(tssCollection.getContainers(locus, "both")) > 0:
                 boundCollection.remove(locus)
@@ -88,14 +87,15 @@ def regionStitching(
 
         #Create loci centered around of transcribed genes
         tssLoci = [makeTSSLocus(row, 50) for row in zip(*startDict.to_dict("list").values())]
-        tssCollection = LocusCollection(tssLoci, 50)  ## -> isn't 500 the standard?? 
+        tssCollection = LocusCollection(tssLoci, 50)
 
         #Loop over stiched enhancer loci
         for stitchedLocus in stitchedCollection.getLoci():
-
+            
             #Get names of transcribed genes loci that overlap with the stiched locus
             overlappingTSSLoci = tssCollection.getOverlap(stitchedLocus, "both")
-            tssNames = startDict.loc[startDict["id"].isin([str(tssLocus._ID) for tssLocus in overlappingTSSLoci]), "name"].values
+            tssNames = [str(tssLocus._ID) for tssLocus in overlappingTSSLoci]
+            tssNames = startDict.loc[startDict["id"].isin(tssNames), "name"].values
     
             #Remove stiched enhancer loci that overlap with 2+ gene loci and unstitch them
             if len(set(tssNames)) > 2:

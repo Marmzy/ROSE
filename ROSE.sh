@@ -7,12 +7,11 @@ function usage(){
     if [ -n "$1" ]; then
         echo -e "${RED}→ $1${CLEAR}"
     fi
-    echo "Usage: $0 [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optional flags]"
+    echo "Usage: $0 [-h help] [-i input] [-o output] [-r rankby] [-a annot] [optional flags]"
     echo " #Required arguments"
-    echo " -g, --genome     Genome build (MM8, MM9, MM10, HG18, HG19, HG38)"
     echo " -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites"
     echo " -o, --output     Name of output directory where data will be stored"
-    echo " -r, --rankby     .bam file to rank enhancers by"
+    echo " -r, --rankby     Directory containing .bam files to rank enhancers by"
     echo " -a, --annot      UCSC table track annotation file"
     echo ""
     echo " #Additional arguments"
@@ -31,7 +30,8 @@ function usage(){
     echo " -p, --rpm        Normalizes density to reads per million (rpm) (default=true)"
     echo " -m, --matrix     Variable bin sized matrix (default=1)"
     echo ""
-    echo "Example: $0 -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
+    echo "Regular example: $0 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/bams -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
+    echo "Docker example: docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose_01 bash $0 -i ./data/HG18_MM1S_MED1.gff -o output_docker -r ./data/bams -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true"
     exit 1
 }
 
@@ -60,10 +60,9 @@ done
 
 #Verifying arguments
 if [ -z "$VERBOSE" ]; then VALUE_V=false; else VALUE_V=true; fi;
-if [ -z "$GENOME" ]; then usage "Genome build is not specified"; else VALUE_G=$GENOME; fi;
 if [ -z "$INPUT" ]; then usage "Input file is not specified"; else VALUE_I=$INPUT; fi;
 if [ -z "$OUTPUT" ]; then usage "Output directory name is not specified"; else VALUE_O=$OUTPUT; fi;
-if [ -z "$RANKBY" ]; then usage ".bam file is not specified"; else VALUE_R=$RANKBY; fi;
+if [ -z "$RANKBY" ]; then usage ".bam files directory is not specified"; else VALUE_R=$RANKBY; fi;
 if [ -z "$ANNOT" ]; then usage "UCSC annotation file is not specified"; else VALUE_A=$ANNOT; fi;
 if [ -z "$STITCH" ]; then VALUE_S=12500; else VALUE_S=$STITCH; fi;
 if [ -z "$TSS" ]; then VALUE_T=0; else VALUE_T=$TSS; fi;
@@ -75,31 +74,21 @@ if [ -z "$RPM" ]; then VALUE_P=true; else VALUE_P=$RPM; fi;
 if [ -z "$MATRIX" ]; then VALUE_M=1; else VALUE_M=$MATRIX; fi;
 
 
-#Initialising variables
-BAM_FILES=($VALUE_R)
-if [ "$VALUE_C" ]; then
-    BAM_FILES+=($VALUE_C)
-fi
-
 #Create stitched enhancers .gff3 file
-python3 src/ROSE_main.py -g $VALUE_G -i $VALUE_I -r $VALUE_R -a $VALUE_A -o $VALUE_O -c $VALUE_C -s $VALUE_S -t $VALUE_T -d $VALUE_D -v $VALUE_V
+python3 src/ROSE_main.py -i $VALUE_I -a $VALUE_A -o $VALUE_O -s $VALUE_S -t $VALUE_T -d $VALUE_D -v $VALUE_V
 
 #Creating variable names
 ORIGINAL=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I/"${VALUE_I##*.}"/gff3})")
 STITCHED=$(find ${PWD}/${VALUE_O}/gff/ -name "$(basename ${VALUE_I%.*}*_distal.gff3)" | head -n 1)
 
 #Mapping reads to stitched enhancers gff
-for BAM in ${BAM_FILES[@]}; do
-    python3 src/ROSE_bamToGFF.py -b $BAM -i $STITCHED -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V &
-    python3 src/ROSE_bamToGFF.py -b $BAM -i $ORIGINAL -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V &
-    wait
-done
+python3 src/ROSE_bamToGFF.py -b $VALUE_R -c $VALUE_C -i $STITCHED -o $ORIGINAL -s $VALUE_N -f $VALUE_F -e $VALUE_X -r $VALUE_P -m $VALUE_M -v $VALUE_V
 
 #Calculate read density for each stitched enhancer locus
-python3 src/ROSE_mapCollection.py -s $STITCHED -g $ORIGINAL -b "${BAM_FILES[@]}" -d ${PWD}/${VALUE_O}/mappedGFF
+python3 src/ROSE_mapCollection.py -s $STITCHED -g $ORIGINAL -b $VALUE_R -c $VALUE_C -d ${PWD}/${VALUE_O}/mappedGFF
 
 #Creating more variable names
-DENSITY=$(find ${PWD}/${VALUE_O}/ -name "$(basename ${VALUE_I} | cut -d "." -f 1)*_enhancer_region_map.txt")
+DENSITY=$(find ${PWD}/${VALUE_O}/ -name "$(basename ${VALUE_I%.*}*_enhancer_region_map.txt)")
 
 #Identifing and visualising superenhancers
 if [ "$VALUE_C" ]; then

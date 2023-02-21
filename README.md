@@ -22,9 +22,10 @@ Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Chr
 
 ### Requirements
 
-- .bam file of sequencing reads for factor of interest (reads for control is recommended, but optional).
-	- .bam files must have chromosome IDs starting with "chr"
-	- .bam files must be sorted and indexed using [SAMtools](http://www.htslib.org/doc/samtools.html)
+- .bam file(s) of sequencing reads for factor(s) of interest (reads for control is recommended, but optional).
+	- .bam file(s) must have chromosome IDs starting with "chr"
+	- .bam file(s) must be sorted and indexed using [SAMtools](http://www.htslib.org/doc/samtools.html)
+	- If a control .bam file is used, the target .bam file(s) must be located in a different directory
 
 - .gff file of constituent enhancers previously identified.
 	- Input .gff file can be [.gff3 format](https://asia.ensembl.org/info/website/upload/gff3.html) (recommended), [.gtf format](https://asia.ensembl.org/info/website/upload/gff.html), .gff format or [.bed format](https://asia.ensembl.org/info/website/upload/bed.html)
@@ -43,12 +44,11 @@ Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Chr
 ### Usage
 
 ```
-Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optional flags]
+Usage: ROSE.sh [-h help] [-i input] [-o output] [-r rankby] [-a annot] [optional flags]
  #Required arguments
- -g, --genome     Genome build (MM8, MM9, MM10, HG18, HG19, HG38)
  -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites
  -o, --output     Name of output directory where data will be stored
- -r, --rankby     .bam file to rank enhancers by
+ -r, --rankby     Directory containing .bam files to rank enhancers by
  -a, --annot      UCSC table track annotation file
 
  #Additional arguments
@@ -67,7 +67,7 @@ Usage: ROSE.sh [-h help] [-g genome] [-i input] [-o output] [-r rankby] [optiona
  -p, --rpm        Normalizes density to reads per million (rpm) (default=true)
  -m, --matrix     Variable bin sized matrix (default=1)
 
-Example: ROSE.sh -g hg18 -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/MM1S_MED1.hg18.bwt.sorted.bam -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
+Example: ROSE.sh -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/bams -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
 ```
 
 `ROSE.sh` will run ROSE from start to end. It will (amongst others) call the following scripts:
@@ -102,7 +102,7 @@ Explanation of the ROSE output files
 - `*_AllEnhancers.table.txt`: Ranking by (control corrected) read density signal and classification of all stitched enhancer loci
 - `*_SuperEnhancers.table.txt`: Ranking by (control corrected) read density signal of super-enhancer stitched enhancer loci only
 - `*_Enhancers_withSuper.bed`: .bed file to be loaded into the UCSC browser to visualize super-enhancers and typical enhancers
-- `*_Plot_points.png`: Visualisation of the stitched enhancer loci read density signals
+- `*_plot_points.png`: Visualisation of the stitched enhancer loci read density signals
 
 ---
 
@@ -110,4 +110,4 @@ Explanation of the ROSE output files
 
 [nottuh/rose](https://hub.docker.com/r/nottuh/rose) is the official Docker image for this version ROSE. It contains all necessary tools and packages to run ROSE smoothly. After downloading the image from Docker Hub, ROSE can easily be run by mounting the directory containing the input data to the image. Below is a snippet of how to run ROSE with the Docker image, using the example data provided by Young lab:
 
-`docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose_01 bash ROSE.sh -g hg18 -i ...`
+`docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose_01 bash ROSE.sh -i ...`
