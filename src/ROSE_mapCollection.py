@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import glob
 import pandas as pd
 
 from collections import defaultdict
@@ -21,7 +22,8 @@ def parseArgs() -> argparse.Namespace:
     #Required arguments
     parser.add_argument("-s", "--stitch", type=str, help="Stitched enhancer loci .gff3 file")
     parser.add_argument("-g", "--gff", type=str, help="File (.bed, .gff or .gtf) containing binding sites to make enhancers")
-    parser.add_argument("-b", "--bams", type=str, nargs="+", help="List of .bam file used in analysis")
+    parser.add_argument("-b", "--bams", type=str, help="Directory containing .bam files")
+    parser.add_argument("-c", "--control", type=str, help="Control .bam file")
     parser.add_argument("-d", "--dir",  type=str, help="Directory where output will be stored")
 
     #Printing arguments to the command line
@@ -29,6 +31,11 @@ def parseArgs() -> argparse.Namespace:
 
     print("Called with args:")
     print(f"{args}\n")
+
+    #Ensuring that files exist
+    check_file(args.stitch)
+    check_file(args.gff)
+    check_file(args.control)
 
     return args
 
@@ -42,6 +49,10 @@ def mapCollection() -> None:
 
     #Initialising variables
     locusTable = [["REGION_ID", "CHROM", "START", "STOP", "NUM_LOCI", "CONSTITUENT_SIZE"]]
+
+    #Loading the .bam files from the directory and making sure they are indexed
+    bam_files = glob.glob(str(Path(args.bams, "*.bam")))
+    bam_files.append(args.control)
     
     #Read binding sites and stitched enhancer loci files as LocusCollection object
     referenceCollection = gffToLocusCollection(check_file(args.gff))
@@ -68,7 +79,7 @@ def mapCollection() -> None:
         locusTable.append([locus._ID, locus._chr, locus._start, locus._end, stitchCount, refEnrichSize])
 
     #Calculate stitched enhancer loci signal density for each .bam file
-    for bam in args.bams:
+    for bam in bam_files:
 
         #Initialising variables
         mappedLoci = []

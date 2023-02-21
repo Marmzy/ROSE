@@ -16,7 +16,8 @@ def convert_stitched_to_bed(
     trackDescription: str,
     output: str,
     densitySignal: np.ndarray,
-    superRows: np.ndarray
+    superRows: np.ndarray,
+    bam: str
 ) -> None:
     """Create a .bed file ranking stitched enhancer loci by their (corrected) density signal
 
@@ -26,6 +27,7 @@ def convert_stitched_to_bed(
         output (str): Output file name
         densitySignal (np.ndarray): (Control corrected) density signal values
         superRows (np.ndarray): Vector of superenhancer indices
+        bam (str): .bam file name
     """
 
     #Create output dataframe
@@ -40,7 +42,7 @@ def convert_stitched_to_bed(
     #Create a description track and output the dataframe to a .bed file
     trackDescription = f"{trackDescription}\nCreated on {datetime.now().strftime('%Y-%m-%d')}".replace("\n", "\t")
     with open(output, "w") as f_out:
-        f_out.write(f"track name='{stitchedRegions.columns[7]}_Enhancers' description='{trackDescription}' itemRGB=On color=0,0,0\n")
+        f_out.write(f"track name='{bam}_Enhancers' description='{trackDescription}' itemRGB=On color=0,0,0\n")
         df.iloc[superRows, :].to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 
@@ -81,7 +83,7 @@ def hockey_stick_plot(
         ax.set_ylabel(f"{bam} Signal")
     ax.set_title(f"Cut-off used: {y_cutoff}\nSuper-Enhancers identified: {len(super_enhancer_rows)}")
     fig.tight_layout()
-    fig.savefig(check_path(Path(out, f"{Path(gff).stem}_plot_points.png")))
+    fig.savefig(check_path(Path(out, f"{Path(gff).stem}_{Path(bam).stem}_plot_points.png")))
     
 
 def write_enhancer_table(

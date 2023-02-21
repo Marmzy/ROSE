@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-import glob
 import pandas as pd
 
 from classes.locus import gffToLocusCollection, locusCollectionToGFF
