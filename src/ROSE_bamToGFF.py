@@ -189,7 +189,7 @@ def main() -> None:
     #Outputting per-bin read density
     for newGFF, (bam, gff) in zip(results, product(bam_files, [args.input, args.original])):
         out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(args.matrix)+1)])
-        out_name = check_path(Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).name}_mapped.txt"))
+        out_name = check_path(Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).stem}_mapped.txt"))
         out_df.to_csv(out_name, sep="\t", index=False)
 
                 
