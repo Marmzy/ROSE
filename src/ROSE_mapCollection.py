@@ -85,7 +85,7 @@ def mapCollection() -> None:
         mappedLoci = []
 
         #Open mapped stitched enhancer loci file as a dataframe
-        mappedGFF = check_file(Path(args.dir, f"{Path(args.stitch).stem}_{Path(bam).name}_mapped.txt"))
+        mappedGFF = check_file(Path(args.dir, f"{Path(args.stitch).stem}_{Path(bam).stem}_mapped.txt"))
         mappedGFF = pd.read_csv(mappedGFF, sep="\t", header=0, comment="#")
 
         #Calculate signal for all stitched enhancer loci
