@@ -7,6 +7,8 @@ import pathlib
 import os
 
 from pathlib import Path
+from typing import Any, Dict
+from yaml import YAMLError, safe_load
 
 
 def check_file(
@@ -54,6 +56,27 @@ def get_path() -> str:
     git_repo = git.Repo(search_parent_directories=True)
 
     return str(Path(git_repo.working_tree_dir))
+
+
+def read_yaml(
+    config: str
+) -> Dict[str, Any]:
+    """Read .yaml file into dict
+
+    Args:
+        config (str): .yaml configuration file
+
+    Returns:
+        Dict[str, Any]: .yaml file content
+    """
+
+    with open(check_file(config), "r") as stream:
+        try:
+            data = safe_load(stream)
+        except YAMLError as exc:
+            print(exc)
+
+    return data
 
 
 def str2bool(
