@@ -57,8 +57,6 @@ def stitch_loci(
 
     #Making the start dict
     startDict = makeStartDict(annot)
-    print(startDict)
-    quit()
 
     #Loading enhancers as loci collection object
     referenceCollection = gffToLocusCollection(inputGFFFile)

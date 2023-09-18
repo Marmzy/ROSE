@@ -22,7 +22,7 @@ def makeStartDict(
     refseqTable = pd.read_csv(annotFile, sep="\t")
 
     #Remove duplicate "name" entries and extract specific data
-    startDict = refseqTable.loc[:, ["name", "strand", "chrom", "txStart", "txEnd", "name2"]]
+    startDict = refseqTable.loc[:, ["name", "chrom", "strand", "txStart", "txEnd", "name2"]]
     startDict = startDict.drop_duplicates(subset=["name"])
     startDict.loc[startDict["strand"]=="-", ["txStart", "txEnd"]] = \
         (startDict.loc[startDict["strand"] == "-", ("txEnd", "txStart")].values)
