@@ -34,7 +34,7 @@ def main():
     conf = read_yaml(args.config)
 
     #Stitch enhancer loci
-    stitch_loci(
+    original, stitched = stitch_loci(
         input = check_file(conf["data"]["input"]),
         output = conf["data"]["output"],
         annot = check_file(conf["data"]["annotation"]),

@@ -7,21 +7,35 @@ from src.classes.locus import gffToLocusCollection, locusCollectionToGFF
 from src.stitching.region_stitching import makeStartDict, regionStitching
 from src.utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
 from src.utils.file_helper import get_path, check_path
+from typing import Tuple
 
 
 def stitch_loci(
     input: str,
     output: str,
     annot: str,
-    stitch: int,
-    tss: int,
-    debug: bool,
-    verbose: bool,
-) -> None:
+    stitch: int = 12500,
+    tss: int = 0,
+    debug: bool = False,
+    verbose: bool = True,
+) -> Tuple[str, str]:
     """Stitch enhancer loci together
+
+    Args:
+        input (str): Enhancer binding sites file
+        output (str): Output directory name
+        annot (str): UCSC annotation file
+        stitch (int, optional): Max linking distance for stitching (default=12500)
+        tss (int, optional): Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
+        debug (bool, optional): Enhancer stitching debugging output (default=False)
+        verbose (bool, optional): Verbose messages (default=True)
 
     Raises:
         ValueError: if input file is not a .bed, .gtf, .gff or gff3 file
+
+    Returns:
+        Tuple[str, str]: Original .gff3 enhancers file \
+                         and stiched enhancers .gff3 file
     """
 
     #Initialising variables
@@ -97,3 +111,4 @@ def stitch_loci(
             columns=["Enhancer", "Region", "Reason"]
         ).to_csv(debugOutFile, index=False, sep="\t")
 
+    return inputGFFFile, stitchedGFFFile
