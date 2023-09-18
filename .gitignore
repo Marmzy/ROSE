@@ -1,0 +1,6 @@
+example/*
+**.pyc
+output/*
+output_docker/*
+data/*
+GSE*

@@ -32,8 +32,7 @@ def parseArgs() -> argparse.Namespace:
     #Printing arguments to the command line
     args = parser.parse_args()
 
-    print("Called with args:")
-    print(f"{args}\n")
+    print(f"Called with args:\n{args}\n")
 
     return args
 

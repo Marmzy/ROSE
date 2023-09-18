@@ -2,6 +2,7 @@
 
 import argparse
 import errno
+import git
 import pathlib
 import os
 
@@ -50,10 +51,9 @@ def get_path() -> str:
         str: Full path to the project
     """
 
-    idx = str(Path.cwd()).split("/").index("ROSE")
-    path = "/".join(str(Path.cwd()).split("/")[:idx+1])
+    git_repo = git.Repo(search_parent_directories=True)
 
-    return path
+    return str(Path(git_repo.working_tree_dir))
 
 
 def str2bool(

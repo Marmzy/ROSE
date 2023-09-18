@@ -35,8 +35,7 @@ def parseArgs() -> argparse.Namespace:
     #Printing arguments to the command line
     args = parser.parse_args()
 
-    print("Called with args:")
-    print(f"{args}\n")
+    print(f"Called with args:\n{args}\n")
 
     #Ensuring that argument files exist
     check_file(args.input)
@@ -61,29 +60,24 @@ def main() -> None:
     suffix = "_TSS_distal" if bool(int(args.tss)) else ""
 
     #Copying/creating the input .gff3 file
-    if Path(args.input).suffix == ".bed":
-        if args.verbose:
-            print("Converting input .bed file to .gff3 format")
-        bed_to_gff3(args.input, inputGFFFile)
+    if args.verbose:
+        print(f"Converting input {Path(args.input).suffix} file to .gff3 format")
+    match Path(args.input).suffix:
+        case ".bed":
+            bed_to_gff3(args.input, inputGFFFile)
 
-    elif Path(args.input).suffix == ".gff":
-        if args.verbose:
-            print("Converting input .gff file to .gff3 format")
-        gff_to_gff3(args.input, inputGFFFile)
+        case ".gff":
+            gff_to_gff3(args.input, inputGFFFile)
 
-    elif Path(args.input).suffix == ".gtf":
-        if args.verbose:
-            print("Converting input .gtf file to .gff3 format")
-        gtf_to_gff3(args.input, inputGFFFile, full=False)
+        case ".gtf":
+            gtf_to_gff3(args.input, inputGFFFile, full=False)
 
-    elif Path(args.input).suffix == ".gff3":
-        if args.verbose:
-            print("Checking input .gff3 file")
-        check_gff(args.input, inputGFFFile)
+        case ".gff3":
+            check_gff(args.input, inputGFFFile)
         
-    else:
-        raise ValueError("Input file must be a .bed, .gtf, .gff or .gff3 file")
-
+        case _:
+            raise ValueError("Input file must be a .bed, .gtf, .gff or .gff3 file")
+    
     #Using the .gff3 file to define enhancers
     if args.verbose:
         print(f"Using {inputGFFFile} as the input .gff3 file\n")
@@ -98,7 +92,13 @@ def main() -> None:
     #Stitching regions together
     if args.verbose:
         print("Stitching regions together")
-    stitchedCollection, debugOutput = regionStitching(referenceCollection, int(args.stitch), int(args.tss), startDict, bool(int(args.tss)))
+    stitchedCollection, debugOutput = regionStitching(
+        referenceCollection,
+        int(args.stitch),
+        int(args.tss),
+        startDict,
+        bool(int(args.tss))
+    )
 
     #Create a gff3 dataframe from the stitched enhancers loci collection
     if args.verbose:
@@ -106,8 +106,12 @@ def main() -> None:
     stitchedGFF = locusCollectionToGFF(stitchedCollection)
     
     #Defining output file names
-    stitchedGFFFile = check_path(Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.gff3"))
-    debugOutFile = check_path(Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.debug"))
+    stitchedGFFFile = check_path(
+        Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.gff3")
+    )
+    debugOutFile = check_path(
+        Path(path, args.output, "gff", f"{inputName}_{int(args.stitch)/1000}kb_stitched{suffix}.debug")
+    )
 
     #Outputting the gff3 dataframe
     with open(stitchedGFFFile, "w") as f_out:

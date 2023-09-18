@@ -1,3 +1,4 @@
+GitPython
 matplotlib
 numpy
 pandas
