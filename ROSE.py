@@ -2,6 +2,7 @@
 
 import argparse
 
+from src.ROSE_bamToGFF import calc_read_density
 from src.ROSE_main import stitch_loci
 from src.utils.file_helper import check_file, read_yaml
 
@@ -39,6 +40,17 @@ def main():
         output = conf["data"]["output"],
         annot = check_file(conf["data"]["annotation"]),
         **conf["stitching"],
+        verbose = conf["verbose"],
+    )
+
+    #Map reads and calculate read density per stitched
+    #enhancer locus bin
+    calc_read_density(
+        conf["data"]["rankby"],
+        stitched,
+        original,
+        check_file(conf["data"]["control"]),
+        **conf["mapping"],
         verbose = conf["verbose"],
     )
 
