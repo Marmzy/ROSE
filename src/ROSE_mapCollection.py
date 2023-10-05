@@ -1,61 +1,41 @@
 #!/usr/bin/env python
 
-import argparse
 import glob
 import pandas as pd
 
 from collections import defaultdict
 from pathlib import Path
-from utils.file_helper import check_file, check_path
-from classes.locus import gffToLocusCollection, Locus, LocusCollection
+from src.classes.locus import gffToLocusCollection, Locus, LocusCollection
+from src.utils.file_helper import check_file, check_path
 
 
-def parseArgs() -> argparse.Namespace:
-    """Parse arguments from CLI
-
-    Returns:
-        argparse.Namespace: Argparse space containing parsed arguments
-    """
-
-    parser = argparse.ArgumentParser(description="Calculate read density signals for each stitched enhancer locus")
-
-    #Required arguments
-    parser.add_argument("-s", "--stitch", type=str, help="Stitched enhancer loci .gff3 file")
-    parser.add_argument("-g", "--gff", type=str, help="File (.bed, .gff or .gtf) containing binding sites to make enhancers")
-    parser.add_argument("-b", "--bams", type=str, help="Directory containing .bam files")
-    parser.add_argument("-c", "--control", type=str, help="Control .bam file")
-    parser.add_argument("-d", "--dir",  type=str, help="Directory where output will be stored")
-
-    #Printing arguments to the command line
-    args = parser.parse_args()
-
-    print(f"Called with args:\n{args}\n")
-
-    #Ensuring that files exist
-    check_file(args.stitch)
-    check_file(args.gff)
-    check_file(args.control)
-
-    return args
-
-
-def mapCollection() -> None:
+def map_collection(
+    stitch: str,
+    gff: str,
+    bams: str,
+    control: str,
+    output: str,
+) -> None:
     """Calculate density signal for each stitched enhancer locus
-    """
 
-    #Parse arguments from the command line
-    args = parseArgs()
+    Args:
+        stitch (str): Stiched enhancers .gff3 file
+        gff (str): Original .gff3 enhancers file
+        bams (str): Target .bam file(s)
+        control (str): Control .bam file
+        output (str): Output directory
+    """
 
     #Initialising variables
     locusTable = [["REGION_ID", "CHROM", "START", "STOP", "NUM_LOCI", "CONSTITUENT_SIZE"]]
 
     #Loading the .bam files from the directory and making sure they are indexed
-    bam_files = glob.glob(str(Path(args.bams, "*.bam")))
-    bam_files.append(args.control)
+    bam_files = glob.glob(str(Path(bams, "*.bam")))
+    bam_files.append(control)
     
     #Read binding sites and stitched enhancer loci files as LocusCollection object
-    referenceCollection = gffToLocusCollection(check_file(args.gff))
-    stitchedCollection = gffToLocusCollection(check_file(args.stitch))
+    referenceCollection = gffToLocusCollection(check_file(gff))
+    stitchedCollection = gffToLocusCollection(check_file(stitch))
     loci = list(stitchedCollection.getLoci())
 
     #Remove stitched enhancer loci located on chromosome 'Y'
@@ -84,7 +64,7 @@ def mapCollection() -> None:
         mappedLoci = []
 
         #Open mapped stitched enhancer loci file as a dataframe
-        mappedGFF = check_file(Path(args.dir, f"{Path(args.stitch).stem}_{Path(bam).stem}_mapped.txt"))
+        mappedGFF = check_file(Path(output, f"{Path(stitch).stem}_{Path(bam).stem}_mapped.txt"))
         mappedGFF = pd.read_csv(mappedGFF, sep="\t", header=0, comment="#")
 
         #Calculate signal for all stitched enhancer loci
@@ -111,9 +91,5 @@ def mapCollection() -> None:
 
     #Outputting stitched enhancer loci signal density values per .bam file
     out_df = pd.DataFrame(locusTable[1:], columns=locusTable[0])
-    out_name = check_path(Path(Path(args.dir).parents[0], f"{Path(args.stitch).stem}_enhancer_region_map.txt"))
+    out_name = check_path(Path(Path(output).parents[0], f"{Path(stitch).stem}_enhancer_region_map.txt"))
     out_df.to_csv(out_name, sep="\t", index=False)
-
-
-if __name__ == "__main__":
-    mapCollection()

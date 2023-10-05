@@ -2,9 +2,11 @@
 
 import argparse
 
+from pathlib import Path
 from src.ROSE_bamToGFF import calc_read_density
 from src.ROSE_main import stitch_loci
-from src.utils.file_helper import check_file, read_yaml
+from src.ROSE_mapCollection import map_collection
+from src.utils.file_helper import check_file, get_path, read_yaml
 
 
 def parseArgs() -> argparse.Namespace:
@@ -32,6 +34,7 @@ def main():
     args = parseArgs()
 
     #Read the input configuration file
+    path = get_path()
     conf = read_yaml(args.config)
 
     #Stitch enhancer loci
@@ -43,8 +46,7 @@ def main():
         verbose = conf["verbose"],
     )
 
-    #Map reads and calculate read density per stitched
-    #enhancer locus bin
+    #Map reads to each stitched enhancer locus bin
     calc_read_density(
         conf["data"]["rankby"],
         stitched,
@@ -52,6 +54,15 @@ def main():
         check_file(conf["data"]["control"]),
         **conf["mapping"],
         verbose = conf["verbose"],
+    )
+
+    #Calculate read density signal for each stitched enhancer locus
+    map_collection(
+        stitched,
+        original,
+        conf["data"]["rankby"],
+        check_file(conf["data"]["control"]),
+        Path(path, conf["data"]["output"], "mappedGFF")
     )
 
 

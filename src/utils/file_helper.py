@@ -77,26 +77,3 @@ def read_yaml(
             print(exc)
 
     return data
-
-
-def str2bool(
-    v: str
-) -> bool:
-    """Convert string to boolean
-
-    Args:
-        v (str): boolean string
-
-    Raises:
-        argparse.ArgumentTypeError: String is not named "true" or "false"
-
-    Returns:
-        bool: Booleanised string
-    """
-    
-    if v.lower() == "true":
-        return True
-    elif v.lower() == "false":
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
