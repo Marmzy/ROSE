@@ -7,15 +7,16 @@ from collections import defaultdict
 from pathlib import Path
 from src.classes.locus import gffToLocusCollection, Locus, LocusCollection
 from src.utils.file_helper import check_file, check_path
+from typing import Union
 
 
 def map_collection(
     stitch: str,
     gff: str,
     bams: str,
-    control: str,
+    control: Union[str, None],
     output: str,
-) -> None:
+) -> str:
     """Calculate density signal for each stitched enhancer locus
 
     Args:
@@ -24,6 +25,9 @@ def map_collection(
         bams (str): Target .bam file(s)
         control (str): Control .bam file
         output (str): Output directory
+
+    Returns:
+        str: Stitched enhancers signal density values file
     """
 
     #Initialising variables
@@ -31,7 +35,8 @@ def map_collection(
 
     #Loading the .bam files from the directory and making sure they are indexed
     bam_files = glob.glob(str(Path(bams, "*.bam")))
-    bam_files.append(control)
+    if control:
+        bam_files.append(control)
     
     #Read binding sites and stitched enhancer loci files as LocusCollection object
     referenceCollection = gffToLocusCollection(check_file(gff))
@@ -48,14 +53,18 @@ def map_collection(
     
     #Get the size of the enriched regions within the stitched enhancer locus
     for locus in loci:
-        refEnrichSize = sum(len(refLocus) for refLocus in list(referenceCollection.getOverlap(locus, "both")))
+        refEnrichSize = sum(
+            len(refLocus) for refLocus in list(referenceCollection.getOverlap(locus, "both"))
+        )
 
         try:
             stitchCount = int(locus._ID.split("_")[0])
         except ValueError:
             stitchCount = 1
 
-        locusTable.append([locus._ID, locus._chr, locus._start, locus._end, stitchCount, refEnrichSize])
+        locusTable.append(
+            [locus._ID, locus._chr, locus._start, locus._end, stitchCount, refEnrichSize]
+        )
 
     #Calculate stitched enhancer loci signal density for each .bam file
     for bam in bam_files:
@@ -64,7 +73,9 @@ def map_collection(
         mappedLoci = []
 
         #Open mapped stitched enhancer loci file as a dataframe
-        mappedGFF = check_file(Path(output, f"{Path(stitch).stem}_{Path(bam).stem}_mapped.txt"))
+        mappedGFF = check_file(
+            Path(output, f"{Path(stitch).stem}_{Path(bam).stem}_mapped.txt")
+        )
         mappedGFF = pd.read_csv(mappedGFF, sep="\t", header=0, comment="#")
 
         #Calculate signal for all stitched enhancer loci
@@ -91,5 +102,9 @@ def map_collection(
 
     #Outputting stitched enhancer loci signal density values per .bam file
     out_df = pd.DataFrame(locusTable[1:], columns=locusTable[0])
-    out_name = check_path(Path(Path(output).parents[0], f"{Path(stitch).stem}_enhancer_region_map.txt"))
+    out_name = check_path(
+        Path(Path(output).parents[0], f"{Path(stitch).stem}_enhancer_region_map.txt")
+    )
     out_df.to_csv(out_name, sep="\t", index=False)
+
+    return out_name
