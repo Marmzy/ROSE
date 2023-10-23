@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import glob
 import multiprocessing as mp
 import pandas as pd
 import re
@@ -128,7 +127,7 @@ def map_reads(
         
 
 def calc_read_density(
-    bam: str,
+    bam_files: str,
     input: str,
     original: str,
     control: str = "",
@@ -142,7 +141,7 @@ def calc_read_density(
     """Calculate read density per stitched enhancer locus bin
 
     Args:
-        bam (str): Target .bam file(s)
+        bam_files (str): List of target .bam file(s)
         control (str): Control .bam file
         input (str): Stiched enhancers .gff3 file
         original (str): Original .gff3 enhancers file
@@ -159,7 +158,7 @@ def calc_read_density(
     original_df = pd.read_csv(original, sep="\t", header=None, comment="#")
 
     #Loading the .bam files from the directory and making sure they are indexed
-    bam_files = glob.glob(str(Path(bam, "*.bam")))
+    bam_files = bam_files.copy()
     if control:
         bam_files.append(control)
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import glob
 import pandas as pd
 
 from collections import defaultdict
@@ -13,7 +12,7 @@ from typing import Union
 def map_collection(
     stitch: str,
     gff: str,
-    bams: str,
+    bam_files: str,
     control: Union[str, None],
     output: str,
 ) -> str:
@@ -22,7 +21,7 @@ def map_collection(
     Args:
         stitch (str): Stiched enhancers .gff3 file
         gff (str): Original .gff3 enhancers file
-        bams (str): Target .bam file(s)
+        bam_files (str): List of target .bam file(s)
         control (str): Control .bam file
         output (str): Output directory
 
@@ -34,10 +33,10 @@ def map_collection(
     locusTable = [["REGION_ID", "CHROM", "START", "STOP", "NUM_LOCI", "CONSTITUENT_SIZE"]]
 
     #Loading the .bam files from the directory and making sure they are indexed
-    bam_files = glob.glob(str(Path(bams, "*.bam")))
+    bam_files = bam_files.copy()
     if control:
         bam_files.append(control)
-    
+
     #Read binding sites and stitched enhancer loci files as LocusCollection object
     referenceCollection = gffToLocusCollection(check_file(gff))
     stitchedCollection = gffToLocusCollection(check_file(stitch))

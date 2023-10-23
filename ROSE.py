@@ -2,6 +2,7 @@
 
 import argparse
 
+from copy import copy
 from pathlib import Path
 from src.ROSE_bamToGFF import calc_read_density
 from src.ROSE_callSuper import get_super
@@ -50,18 +51,18 @@ def main():
         output = conf["data"]["output"],
         annot = conf["data"]["annotation"],
         **conf["stitching"],
-        verbose = conf["verbose"],
+        verbose = conf["verbose"], 
     )
 
-    # #Map reads to each stitched enhancer locus bin
-    # calc_read_density(
-    #     conf["data"]["rankby"],
-    #     stitched,
-    #     original,
-    #     conf["data"]["control"],
-    #     **conf["mapping"],
-    #     verbose = conf["verbose"],
-    # )
+    #Map reads to each stitched enhancer locus bin
+    calc_read_density(
+        conf["data"]["rankby"],
+        stitched,
+        original,
+        conf["data"]["control"],
+        **conf["mapping"],
+        verbose = conf["verbose"],
+    )
 
     #Calculate read density signal for each stitched enhancer locus
     density = map_collection(

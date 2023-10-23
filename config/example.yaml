@@ -1,9 +1,10 @@
 data:
   annotation: "./data/annotation/hg18_refseq.ucsc"
-  control: "./data/MM1S_WCE.hg18.bwt.sorted.bam"
+  control: "./data/bams/MM1S_WCE.hg18.bwt.sorted.bam"
   input: "./data/HG18_MM1S_MED1.gff"
-  output: "test"
-  rankby: "./data/bams"
+  output: "output"
+  rankby:
+    - "./data/bams/MM1S_MED1.hg18.bwt.sorted.bam"
 
 mapping:
   extension: 200
