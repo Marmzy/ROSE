@@ -4,7 +4,7 @@
 
 Rank Ordering of Super-Enhancers aka ROSE is a tool for identifying super-enhancers. It does this by separating super-enhancers from typical enhancers using sequencing data (.bam) given a file of previsously identified constituent enhancers (.gff). The original ROSE tool was developed by Charles Y. Lin, David A. Orlando and Brian J. Abraham at Young Lab Whitehead Institute/MIT. This new ROSE version is an attempt to update the code from Python 2 to 3, convert the few R code to Python, use newer versions of tools, make the code more readable to allow for better in-depth understanding of the algorithm and to increase the computational speed.
 
-This version of ROSE was developed using `Python 3.8.10`, and `SAMtools 1.10`
+This version of ROSE was developed using `Python 3.10.13`, and `SAMtools 1.16`
 
 ---
 
@@ -22,7 +22,7 @@ Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Chr
 
 ### Requirements
 
-- .bam file(s) of sequencing reads for factor(s) of interest (reads for control is recommended, but optional).
+- .bam file(s) of sequencing reads for factor(s) of interest (reads for control are recommended, but optional).
 	- .bam file(s) must have chromosome IDs starting with "chr"
 	- .bam file(s) must be sorted and indexed using [SAMtools](http://www.htslib.org/doc/samtools.html)
 	- If a control .bam file is used, the target .bam file(s) must be located in a different directory
@@ -39,38 +39,40 @@ Jakob Lovén, Heather A. Hoke, Charles Y. Lin, Ashley Lau, David A. Orlando, Chr
 		
 - .ucsc annotation file in UCSC table track format (https://genome.ucsc.edu/cgi-bin/hgTables)
 
+- .yaml format configuration file 
+
 ---
 
 ### Usage
 
+As ROSE contains a lot of optional parameters, rather than passing them as additional options on the command line, the newest version opts to use .yaml configuration files. The .yaml file allows for easier tracking of parameters used during an analysis. Below is an example of a .yaml file to be used on the example data provided by Young lab. The exmaple .yaml file uses default setting recommended by Young lab.
+
 ```
-Usage: ROSE.sh [-h help] [-i input] [-o output] [-r rankby] [-a annot] [optional flags]
- #Required arguments
- -i, --input      File (.bed, .gff or .gtf) containing enhancer binding sites
- -o, --output     Name of output directory where data will be stored
- -r, --rankby     Directory containing .bam files to rank enhancers by
- -a, --annot      UCSC table track annotation file
+data:
+  annotation: "./data/annotation/hg18_refseq.ucsc"	# UCSC table track annotation file
+  control: "./data/MM1S_WCE.hg18.bwt.sorted.bam"	  # Control .bam file to rank enhancers by
+  input: "./data/HG18_MM1S_MED1.gff"				        # File (.bed, .gff or .gtf) containing enhancer binding sites
+  output: "output"									                # Output directory name
+  rankby: "./data/bams"								              # List of .bam files to rank enhancers by
 
- #Additional arguments
- -v, --verbose    Print verbose messages (default=true)
+mapping:
+  extension: 200									                  # Extends reads by n bp
+  floor: 1											                    # Read floor threshold necessary to count towards density
+  matrix: 1											                    # Variable bin sized matrix
+  rpm: True											                    # Normalizes density to reads per million (rpm)
+  sense: "both"										                  # Strand to map to
 
- #Additional arguments for ROSE_main.py
- -c, --control    .bam file to rank enhancers by
- -s, --stitch     Max linking distance for stitching (default=12500)
- -t, --tss        Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
- -d, --debug      Enhancer stitching debugging output (default=False)
+stitching:
+  debug: True										                    # Enhancer stitching debugging output
+  stitch: 12500										                  # Max linking distance for stitching
+  tss: 2500											                    # Distance from TSS to exclude
 
- #Additional arguments for ROSE_bamToGFF.py
- -n, --sense      Strand to map to (default='both')
- -f, --floor      Read floor threshold necessary to count towards density (default=1)
- -x, --extension  Extends reads by n bp (default=200)
- -p, --rpm        Normalizes density to reads per million (rpm) (default=true)
- -m, --matrix     Variable bin sized matrix (default=1)
-
-Example: ROSE.sh -i ./data/HG18_MM1S_MED1.gff -o output -r ./data/bams -a ./data/annotation/hg18_refseq.ucsc -c ./data/MM1S_WCE.hg18.bwt.sorted.bam -s 12500 -t 2500 -n both -x 200 -p true -m 1 -v true
+verbose: True										                    # Print verbose messages
 ```
 
-`ROSE.sh` will run ROSE from start to end. It will (amongst others) call the following scripts:
+Once the .yaml file has been set, ROSE can easily be run using the following command: `python3 ROSE.py -c ./config/example.yaml`
+
+`ROSE.py` will run ROSE from start to end. It will (amongst others) call the following scripts:
 
 - `ROSE_main.py`: Stitches regions together to form stitched enhancers
 - `ROSE_bamToGFF.py`: Map .bam reads to stitched enhancers and calculate read density
@@ -108,6 +110,6 @@ Explanation of the ROSE output files
 
 ### Docker
 
-[nottuh/rose](https://hub.docker.com/r/nottuh/rose) is the official Docker image for this version ROSE. It contains all necessary tools and packages to run ROSE smoothly. After downloading the image from Docker Hub, ROSE can easily be run by mounting the directory containing the input data to the image. Below is a snippet of how to run ROSE with the Docker image, using the example data provided by Young lab:
+[nottuh/rose](https://hub.docker.com/r/nottuh/rose) is the official Docker image for this version ROSE. It contains all necessary tools and packages to run ROSE smoothly. After downloading the latest image from Docker Hub, ROSE can easily be run by mounting the directory containing the input data to the image. Below is a snippet of how to run ROSE with the Docker image, using the example data provided by Young lab:
 
-`docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose_01 bash ROSE.sh -i ...`
+`docker run --volume $PWD:$PWD --workdir $PWD nottuh/rose:1.3.0 python3 ROSE.py -c example.yaml`

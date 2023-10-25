@@ -3,7 +3,7 @@
 import re
 import subprocess
 
-from classes.locus import Locus 
+from src.classes.locus import Locus 
 from typing import List
 
 
@@ -29,7 +29,9 @@ class Bam:
 
         #Run samtools view and capture output
         cmd = f"samtools view {self._bam} | head -n 1"
-        stdout = subprocess.run(cmd, capture_output=True, shell=True, check=True, text=True).stdout
+        stdout = subprocess.run(
+            cmd, capture_output=True, shell=True, check=True, text=True
+        ).stdout
         
         #Capture chromosome naming from output
         if "chr" in stdout.split()[2]:
@@ -66,7 +68,9 @@ class Bam:
 
         #Run samtools flagstat and capture output
         cmd = f"samtools flagstat {self._bam}"
-        stdout = subprocess.run(cmd, capture_output=True, shell=True, check=True, text=True).stdout.splitlines()
+        stdout = subprocess.run(
+            cmd, capture_output=True, shell=True, check=True, text=True
+        ).stdout.splitlines()
 
         #Return total mapped alignments from output
         for line in stdout:
@@ -89,7 +93,9 @@ class Bam:
         #Run samtools view and capture output
         locusLine = locus._chr + ":" + str(locus._start) + "-" + str(locus._end)
         cmd = f"samtools view {self._bam} {locusLine}"
-        stdout = subprocess.run(cmd, capture_output=True, shell=True, check=True, text=True).stdout.splitlines()
+        stdout = subprocess.run(
+            cmd, capture_output=True, shell=True, check=True, text=True
+        ).stdout.splitlines()
 
         #Get all reads in the stitched enhancer locus region
         return [line.split("\t") for line in stdout]

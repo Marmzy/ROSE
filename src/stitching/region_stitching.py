@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from classes.locus import LocusCollection, makeTSSLocus
+from src.classes.locus import LocusCollection, makeTSSLocus
 from typing import List, Tuple
 
 
@@ -22,10 +22,15 @@ def makeStartDict(
     refseqTable = pd.read_csv(annotFile, sep="\t")
 
     #Remove duplicate "name" entries and extract specific data
-    startDict = refseqTable[refseqTable.columns.intersection(["name", "strand", "chrom", "txStart", "txEnd", "name2"])].copy()
-    startDict.drop_duplicates(subset=["name"], inplace=True)
-    startDict.loc[startDict["strand"]=="-", ["txStart", "txEnd"]] = (startDict.loc[startDict["strand"] == "-", ("txEnd", "txStart")].values)
-    startDict.rename({"name": "id", "strand": "sense", "chrom": "chr", "txStart": "start", "txEnd": "end", "name2": "name"}, axis=1, inplace=True)
+    startDict = refseqTable.loc[:, ["name", "chrom", "strand", "txStart", "txEnd", "name2"]]
+    startDict = startDict.drop_duplicates(subset=["name"])
+    startDict.loc[startDict["strand"]=="-", ["txStart", "txEnd"]] = \
+        (startDict.loc[startDict["strand"] == "-", ("txEnd", "txStart")].values)
+    startDict = startDict.rename(
+        {"name": "id", "strand": "sense", "chrom": "chr",
+         "txStart": "start", "txEnd": "end", "name2": "name"},
+        axis=1
+    )
 
     return startDict
 
@@ -47,7 +52,8 @@ def regionStitching(
         removeTSS (bool): Bool to exclude stitched enhancer loci too close to TSS loci
 
     Returns:
-        Tuple[LocusCollection, List[List[str]]]: Tuple of the stiched enhancer loci collection and list stiched loci that overlap multiple TSS
+        Tuple[LocusCollection, List[List[str]]]: Tuple of the stiched enhancer loci collection \
+            and list stiched loci that overlap multiple TSS
     """
 
     #Initialising variables
@@ -60,13 +66,16 @@ def regionStitching(
         removeTicker = 0
 
         #Create loci centered around +/- tssWindow of transcribed genes
-        tssLoci = [makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())]
+        tssLoci = [
+            makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())
+        ]
         tssCollection = LocusCollection(tssLoci, 50)
 
         #Get all enhancer loci
         boundLoci = boundCollection.getLoci()
 
-        #Loop over enhancer loci and remove those that are enveloped within an active gene's TSS +/- tssWindow region 
+        #Loop over enhancer loci and remove those that are enveloped within
+        #an active gene's TSS +/- tssWindow region 
         for locus in list(boundLoci):
             if len(tssCollection.getContainers(locus, "both")) > 0:
                 boundCollection.remove(locus)

@@ -247,7 +247,9 @@ class LocusCollection:
         if sense == "sense" or sense == "both":
             realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
         if sense == "antisense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)}
+            realMatches = {
+                i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)
+            }
         
         return realMatches.keys()
 
@@ -312,7 +314,10 @@ class LocusCollection:
         for locus in locusList:
             if locus in oldCollection._loci:
                 oldCollection.remove(locus)
-                overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense, locus._ID), sense)
+                overlappingLoci = oldCollection.getOverlap(
+                    Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense, locus._ID),
+                    sense
+                )
 
                 #Loop over enhancers that overlap with the target enhancer and create stitched enhancer locus
                 stitchTicker = 1
@@ -327,7 +332,10 @@ class LocusCollection:
                         locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), ".", locus._ID)
                     else:
                         locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), locus._sense, locus._ID)
-                    overlappingLoci = oldCollection.getOverlap(Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense), sense)
+                    overlappingLoci = oldCollection.getOverlap(
+                        Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense),
+                        sense
+                    )
 
                 #Add the stiched enhancer locus to a new LocusCollection
                 locus._ID = f"{stitchTicker}_{locus._ID}_lociStitched"
@@ -457,7 +465,9 @@ def gffToLocusCollection(
 
     #Checking that entries have unique names
     if len(gff.iloc[:, 4]) != len(set(gff.iloc[:, 4])):
-        raise ValueError("Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry")
+        raise ValueError(
+            "Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry"
+        )
 
     return LocusCollection(lociList, 500)
 
@@ -475,7 +485,10 @@ def locusCollectionToGFF(
     """
 
     lociList = locusCollection.getLoci()
-    gff_df = pd.DataFrame([(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start, locus._end, ".", locus._sense, ".", locus._ID) for locus in lociList])
+    gff_df = pd.DataFrame(
+        [(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start, locus._end, ".", locus._sense, ".", locus._ID)
+         for locus in lociList]
+    )
 
     return gff_df
 
@@ -495,7 +508,4 @@ def makeTSSLocus(
     """
 
     #Creating the locus object
-    if entry[2] == "-":
-        return Locus(entry[1], entry[3]-window, entry[3]+window, "-", entry[0])
-    else:
-        return Locus(entry[1], entry[3]-window, entry[3]+window, "+", entry[0])
+    return Locus(entry[1], entry[3]-window, entry[3]+window, entry[2], entry[0])

@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from scipy.stats import rankdata
 from typing import Union
-from utils.file_helper import check_path
+from src.utils.file_helper import check_path
 
 
 def convert_stitched_to_bed(

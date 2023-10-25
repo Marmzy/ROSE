@@ -1,0 +1,21 @@
+data:
+  annotation: "./data/annotation/hg18_refseq.ucsc"
+  control: "./data/bams/MM1S_WCE.hg18.bwt.sorted.bam"
+  input: "./data/HG18_MM1S_MED1.gff"
+  output: "output"
+  rankby:
+    - "./data/bams/MM1S_MED1.hg18.bwt.sorted.bam"
+
+mapping:
+  extension: 200
+  floor: 1
+  matrix: 1
+  rpm: True
+  sense: "both"
+
+stitching:
+  debug: True
+  stitch: 12500
+  tss: 2500
+
+verbose: True

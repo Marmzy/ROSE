@@ -1,59 +1,16 @@
 #!/usr/bin/env python
 
-import argparse
-import glob
 import multiprocessing as mp
 import pandas as pd
 import re
 
-from classes.bam import Bam
-from classes.locus import Locus
 from collections import Counter
 from itertools import product
 from pathlib import Path
+from src.classes.bam import Bam
+from src.classes.locus import Locus
+from src.utils.file_helper import check_file, check_path
 from typing import List, Union
-from utils.file_helper import check_file, check_path, str2bool
-
-
-def parseArgs() -> argparse.Namespace:
-    """Parse arguments from CLI
-
-    Returns:
-        argparse.Namespace: Argparse space containing parsed arguments
-    """
-
-    parser = argparse.ArgumentParser(description="Make locus objects from reads mapped to stitched enhancer loci")
-
-    #Required arguments
-    parser.add_argument("-b", "--bam", type=str, help="Directory containing .bam files")
-    parser.add_argument("-c", "--control", type=str, help="Control .bam file")
-    parser.add_argument("-i", "--input", type=str, help="Stitched enhancer loci .gff3 file")
-    parser.add_argument("-o", "--original", type=str, help="Enhancer loci .gff3 file")
-
-    #Optional arguments
-    parser.add_argument("-s", "--sense", type=str, nargs="?", default="both", help="Strand to map to (default: 'both')")
-    parser.add_argument("-f", "--floor", type=int, nargs="?", default=1, help="Read floor threshold necessary to count towards density (default: 1)")
-    parser.add_argument("-e", "--extension", type=int, nargs="?", default=200, help="Extend reads by n bp (default: 200)")
-    parser.add_argument("-r", "--rpm", type=str2bool, nargs="?", help="Normalize density to reads per million")
-    parser.add_argument("-m", "--matrix", type=int, nargs="?", default=1, help="Variable bin sized matrix (default: 1)")
-    parser.add_argument("-v", "--verbose", type=str2bool, nargs="?", const=True, default=False, help="Print verbose messages")
-
-
-    #Printing arguments to the command line
-    args = parser.parse_args()
-
-    print(f"Called with args:\n{args}\n")
-
-    #Ensuring that files exist
-    check_file(args.control)
-    check_file(args.input)
-    check_file(args.original)
-
-    #Ensuring sense argument makes sense
-    if args.sense not in ["+", "-", ".", "both"]:
-        raise ValueError("Argument -s/--sense value must be '+', '-', '.' or 'both'")
-
-    return args
 
 
 def map_reads(
@@ -79,7 +36,8 @@ def map_reads(
         verbose (bool): Detailed output boolean
 
     Returns:
-        List[List[Union[str, float]]]: List of lists containing density of reads for each stitched enhancer locus
+        List[List[Union[str, float]]]: List of lists containing density of reads for \
+                                       each stitched enhancer locus
     """
 
     #Initialising variables
@@ -104,7 +62,9 @@ def map_reads(
         gffLocus = Locus(row[0], row[3], row[4], row[6], row[8])
 
         #Get reads that lie in the extended stitched enhancer locus region
-        searchLocus = Locus(gffLocus._chr, gffLocus._start-extension, gffLocus._end+extension, gffLocus._sense, gffLocus._ID)
+        searchLocus = Locus(
+            gffLocus._chr, gffLocus._start-extension, gffLocus._end+extension, gffLocus._sense, gffLocus._ID
+        )
         reads = bam.getReadsLocus(searchLocus)
 
         #Extend reads
@@ -132,7 +92,10 @@ def map_reads(
 
         #Remove positions in hash with less than or equal 'floor' reads mapped
         #and positions outside the stitched enhancer locus
-        keys = [k for k in set(list(senseHash.keys()) + list(antiHash.keys())) if senseHash[k]+antiHash[k] > floor if gffLocus._start < k < gffLocus._end]
+        keys = [
+            k for k in set(list(senseHash.keys()) + list(antiHash.keys())) \
+            if senseHash[k]+antiHash[k] > floor if gffLocus._start < k < gffLocus._end
+        ]
 
         #Creating bin sizes for calculating read density in stitched enhancer loci
         binSize = (len(gffLocus)-1) / int(matrix)
@@ -163,34 +126,61 @@ def map_reads(
     return newGFF
         
 
-def main() -> None:
+def calc_read_density(
+    bam_files: str,
+    input: str,
+    original: str,
+    control: str = "",
+    extension: int = 200,
+    floor: int = 1,
+    matrix: int = 1,
+    rpm: bool = True,
+    sense: str = "both",
+    verbose: bool = True
+) -> None:
     """Calculate read density per stitched enhancer locus bin
+
+    Args:
+        bam_files (str): List of target .bam file(s)
+        control (str): Control .bam file
+        input (str): Stiched enhancers .gff3 file
+        original (str): Original .gff3 enhancers file
+        extension (int): Number of bp to extend reads by
+        floor (int): Threshold of mapped reads to count towards read density
+        matrix (int): Number of bins per stitched enhancer locus to count density for
+        rpm (bool): Boolean whether to normalize read density
+        sense (str): Strand to map to
+        verbose (bool): Detailed output boolean
     """
 
-    #Parse arguments from the command line
-    args = parseArgs()
-
     #Reading the gff3 file as a dataframe
-    gff_df = pd.read_csv(check_file(args.input), sep="\t", header=None, comment="#")
-    original_df = pd.read_csv(check_file(args.original), sep="\t", header=None, comment="#")
+    gff_df = pd.read_csv(input, sep="\t", header=None, comment="#")
+    original_df = pd.read_csv(original, sep="\t", header=None, comment="#")
 
     #Loading the .bam files from the directory and making sure they are indexed
-    bam_files = glob.glob(str(Path(args.bam, "*.bam")))
-    bam_files.append(args.control)
+    bam_files = bam_files.copy()
+    if control:
+        bam_files.append(control)
 
     for bam in bam_files:
         check_file(f"{bam}.bai")
 
     #Map reads to stitched enhancer loci and calculate read density
     with mp.Pool(mp.cpu_count()) as p:
-        results = p.starmap(map_reads, [(bam, gff, args.rpm, args.extension, args.sense, args.floor, args.matrix, args.verbose) for bam, gff in product(bam_files, [gff_df, original_df])])
+        results = p.starmap(
+            map_reads,
+            [(bam, gff, rpm, extension, sense, floor, matrix, verbose) 
+             for bam, gff in product(bam_files, [gff_df, original_df])]
+        )
         
     #Outputting per-bin read density
-    for newGFF, (bam, gff) in zip(results, product(bam_files, [args.input, args.original])):
-        out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(args.matrix)+1)])
-        out_name = check_path(Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).stem}_mapped.txt"))
+    for newGFF, (bam, gff) in zip(results, product(bam_files, [input, original])):
+        out_df = pd.DataFrame(
+            newGFF,
+            columns=["GENE_ID", "locusLine"] + \
+                [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(matrix)+1)]
+        )
+        out_name = check_path(
+            Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).stem}_mapped.txt")
+        )
         out_df.to_csv(out_name, sep="\t", index=False)
-
-                
-if __name__ == "__main__":
-    main()
