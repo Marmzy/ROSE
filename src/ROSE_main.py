@@ -5,7 +5,9 @@ import pandas as pd
 from pathlib import Path
 from src.classes.locus import gffToLocusCollection, locusCollectionToGFF
 from src.stitching.region_stitching import makeStartDict, regionStitching
-from src.utils.conversion import bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
+from src.utils.conversion import (
+    bed_to_gff3, check_gff, gff_to_gff3, gtf_to_gff3
+)
 from src.utils.file_helper import get_path, check_path
 from typing import Tuple
 
@@ -25,9 +27,12 @@ def stitch_loci(
         input (str): Enhancer binding sites file
         output (str): Output directory name
         annot (str): UCSC annotation file
-        stitch (int, optional): Max linking distance for stitching (default=12500)
-        tss (int, optional): Distance from TSS to exclude (0 = no TSS exclusion) (default=0)
-        debug (bool, optional): Enhancer stitching debugging output (default=False)
+        stitch (int, optional): Max linking distance for stitching
+                                (default=12500)
+        tss (int, optional): Distance from TSS to exclude
+                             (0 = no TSS exclusion) (default=0)
+        debug (bool, optional): Enhancer stitching debugging output
+                                (default=False)
         verbose (bool, optional): Verbose messages (default=True)
 
     Raises:
@@ -38,12 +43,14 @@ def stitch_loci(
                          and stiched enhancers .gff3 file
     """
 
-    #Initialising variables
+    # Initialising variables
     path = get_path()
-    inputGFFFile = check_path(Path(path, output, "gff", Path(input).stem)) + ".gff3"
+    inputGFFFile = check_path(
+        Path(path, output, "gff", Path(input).stem)
+    ) + ".gff3"
     suffix = "_TSS_distal" if bool(tss) else ""
 
-    #Copying/creating the input .gff3 file
+    # Copying/creating the input .gff3 file
     if verbose:
         print(f"Converting input {Path(input).suffix} file to .gff3 format")
     match Path(input).suffix:
@@ -58,24 +65,24 @@ def stitch_loci(
 
         case ".gff3":
             check_gff(input, inputGFFFile)
-        
+
         case _:
             raise ValueError(
                 "Input file must be a .bed, .gtf, .gff or .gff3 file"
             )
-    
-    #Using the .gff3 file to define enhancers
+
+    # Using the .gff3 file to define enhancers
     if verbose:
         print(f"Using {inputGFFFile} as the input .gff3 file\n")
     inputName = str(Path(inputGFFFile).stem)
 
-    #Making the start dict
+    # Making the start dict
     startDict = makeStartDict(annot)
 
-    #Loading enhancers as loci collection object
+    # Loading enhancers as loci collection object
     referenceCollection = gffToLocusCollection(inputGFFFile)
 
-    #Stitching regions together
+    # Stitching regions together
     if verbose:
         print("Stitching regions together")
     stitchedCollection, debugOutput = regionStitching(
@@ -86,12 +93,12 @@ def stitch_loci(
         bool(tss)
     )
 
-    #Create a gff3 dataframe from the stitched enhancers loci collection
+    # Create a gff3 dataframe from the stitched enhancers loci collection
     if verbose:
         print("Making GFF from stitched collection")
     stitchedGFF = locusCollectionToGFF(stitchedCollection)
-    
-    #Defining output file names
+
+    # Defining output file names
     stitchedGFFFile = check_path(
         Path(path, output, "gff", f"{inputName}_{stitch/1000}kb_stitched{suffix}.gff3")
     )
@@ -99,12 +106,14 @@ def stitch_loci(
         Path(path, output, "gff", f"{inputName}_{stitch/1000}kb_stitched{suffix}.debug")
     )
 
-    #Outputting the gff3 dataframe
+    # Outputting the gff3 dataframe 
     with open(stitchedGFFFile, "w") as f_out:
         f_out.write("##gff-version 3\n##source-version ROSE\n")
-        stitchedGFF.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
+        stitchedGFF.to_csv(
+            f_out, sep="\t", header=False, index=False, mode="a"
+        )
 
-    #Outputting the debugging information
+    # Outputting the debugging information
     if debug:
         pd.DataFrame(
             debugOutput,
