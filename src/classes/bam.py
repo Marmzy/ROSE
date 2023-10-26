@@ -3,7 +3,7 @@
 import re
 import subprocess
 
-from src.classes.locus import Locus 
+from src.classes.locus import Locus
 from typing import List
 
 
@@ -27,13 +27,13 @@ class Bam:
         """Check the chromosome naming in the .bam file
         """
 
-        #Run samtools view and capture output
+        # Run samtools view and capture output
         cmd = f"samtools view {self._bam} | head -n 1"
         stdout = subprocess.run(
             cmd, capture_output=True, shell=True, check=True, text=True
         ).stdout
-        
-        #Capture chromosome naming from output
+
+        # Capture chromosome naming from output
         if "chr" in stdout.split()[2]:
             self._chr = 1
         else:
@@ -66,13 +66,13 @@ class Bam:
             int: Total mapped alignments
         """
 
-        #Run samtools flagstat and capture output
+        # Run samtools flagstat and capture output
         cmd = f"samtools flagstat {self._bam}"
         stdout = subprocess.run(
             cmd, capture_output=True, shell=True, check=True, text=True
         ).stdout.splitlines()
 
-        #Return total mapped alignments from output
+        # Return total mapped alignments from output
         for line in stdout:
             if "mapped (" in line:
                 return int(line.split(" ")[0])
@@ -90,14 +90,14 @@ class Bam:
             List[List[str]]: List of all reads within the region
         """
 
-        #Run samtools view and capture output
-        locusLine = locus._chr + ":" + str(locus._start) + "-" + str(locus._end)
+        # Run samtools view and capture output
+        locusLine = f"{locus._chr}:{str(locus._start)}-{str(locus._end)}"
         cmd = f"samtools view {self._bam} {locusLine}"
         stdout = subprocess.run(
             cmd, capture_output=True, shell=True, check=True, text=True
         ).stdout.splitlines()
 
-        #Get all reads in the stitched enhancer locus region
+        # Get all reads in the stitched enhancer locus region
         return [line.split("\t") for line in stdout]
 
     def readsToLoci(
@@ -107,33 +107,58 @@ class Bam:
         """Convert reads to Locus objects
 
         Args:
-            reads (List[List[str]]): List of reads within the extended stitched enhancer region
+            reads (List[List[str]]): List of reads within the extended
+                                     stitched enhancer region
 
         Returns:
             List[Locus]: List of Locus objects
         """
 
-        #Initialising variables
+        # Initialising variables
         loci = []
 
-        #Looping over the reads and converting them to Locus objects
+        # Looping over the reads and converting them to Locus objects
         for read in reads:
             strand = self.convertBitwiseFlag(read[1])
 
-            #Remove skipped nucleotides in read
+            # Remove skipped nucleotides in read
             if "N" in read[5]:
                 length, total = 0, 0
-                for c in re.findall("\d+\w", read[5]):
+                for c in re.findall(r"\d+\w", read[5]):
                     if c[-1] != "N":
                         length += int(c[:-1])
                     else:
-                        loci.append(Locus(read[2], int(read[3])+total, int(read[3])+total+length, strand, ""))
+                        loci.append(
+                            Locus(
+                                read[2],
+                                int(read[3])+total,
+                                int(read[3])+total+length,
+                                strand,
+                                ""
+                            )
+                        )
                         total = total + length + int(c[:-1])
                         length = 0
                 if c[-1] != "N":
-                    loci.append(Locus(read[2], int(read[3])+total, int(read[3])+total+length, strand, ""))
+                    loci.append(
+                        Locus(
+                            read[2],
+                            int(read[3])+total,
+                            int(read[3])+total+length,
+                            strand,
+                            ""
+                        )
+                    )
             else:
-                loci.append(Locus(read[2], int(read[3]), int(read[3])+len(read[9]), strand, ""))
+                loci.append(
+                    Locus(
+                        read[2],
+                        int(read[3]),
+                        int(read[3])+len(read[9]),
+                        strand,
+                        ""
+                    )
+                )
 
         return loci
 
@@ -150,10 +175,10 @@ class Bam:
             List[Locus]: List of read loci
         """
 
-        #Get reads within the extended stitched enhancer locus region
+        # Get reads within the extended stitched enhancer locus region
         reads = self.getRawReads(locus)
 
-        #Convert reads to loci
+        # Convert reads to loci
         loci = self.readsToLoci(reads)
-            
+
         return loci
