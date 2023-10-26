@@ -30,16 +30,17 @@ def convert_stitched_to_bed(
         bam (str): .bam file name
     """
 
-    #Create output dataframe
+    # Create output dataframe
     df = stitchedRegions.loc[:, ["CHROM", "START", "STOP", "REGION_ID"]]
 
-    #Rank density signal-corrected stitched enhancer loci from smallest to largest
+    # Rank density signal-corrected stitched enhancer loci
+    # from smallest to largest
     if len(densitySignal) == len(stitchedRegions):
         densitySignal = rankdata(densitySignal, method="ordinal")
-        densitySignal = len(densitySignal) - densitySignal +1
+        densitySignal = len(densitySignal) - densitySignal + 1
         df["RANK"] = densitySignal
 
-    #Create a description track and output the dataframe to a .bed file
+    # Create a description track and output the dataframe to a .bed file
     trackDescription = f"{trackDescription}\nCreated on {datetime.now().strftime('%Y-%m-%d')}".replace("\n", "\t")
     with open(output, "w") as f_out:
         f_out.write(f"track name='{bam}_Enhancers' description='{trackDescription}' itemRGB=On color=0,0,0\n")
@@ -67,14 +68,16 @@ def hockey_stick_plot(
         bam (str): .bam file name
     """
 
-    #Ordering the stitched enhancer loci signal density vector from low to high
+    # Ordering the stitched enhancer loci signal density vector from low to high
     vector.sort()
 
-    #Creating the hockey stick plot
+    # Creating the hockey stick plot
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.plot(list(range(len(vector))), vector, "o-", color="red")
     ax.axhline(y_cutoff, color="grey", linestyle="dashed")
-    ax.axvline(len(vector)-len(super_enhancer_rows), color="grey", linestyle="dashed")
+    ax.axvline(
+        len(vector)-len(super_enhancer_rows), color="grey", linestyle="dashed"
+    )
     ax.set_xlabel(f"{bam} Stitched Enhancers")
     ax.ticklabel_format(axis="y", style="sci", scilimits=(1,4))
     if control:
@@ -84,7 +87,7 @@ def hockey_stick_plot(
     ax.set_title(f"Cut-off used: {y_cutoff}\nSuper-Enhancers identified: {len(super_enhancer_rows)}")
     fig.tight_layout()
     fig.savefig(check_path(Path(out, f"{Path(gff).stem}_{Path(bam).stem}_plot_points.png")))
-    
+
 
 def write_enhancer_table(
     enhancer_df: pd.core.frame.DataFrame,
@@ -98,16 +101,17 @@ def write_enhancer_table(
         enhancer_df (pd.core.frame.DataFrame): Stitched enhancer loci dataframe
         description (str): Data description
         output (str): Output file name
-        additional_data (pd.core.frame.DataFrame): Stitched enhancer loci rankings and super status dataframe
+        additional_data (pd.core.frame.DataFrame): Stitched enhancer loci
+            rankings and super status dataframe
 
     Raises:
         ValueError: If the lengths of the two dataframes don't match
     """
 
-    #Creating a descriptive header
+    # Creating a descriptive header
     description = f"#{description}\nCreated on {datetime.now().strftime('%Y-%m-%d')}".replace("\n", "\n#")
 
-    #Merge stitched enhancer loci regions data with superenhancer ranking data
+    # Merge stitched enhancer loci regions data with superenhancer ranking data
     if len(additional_data) == len(enhancer_df):
         out_df = pd.concat([enhancer_df, additional_data], axis=1).sort_values("enhancerRank")
         with open(output, "w") as f_out:
