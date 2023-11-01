@@ -45,14 +45,11 @@ def regionStitching(
     """Stitch enhancer loci that are within a certain distance together
 
     Args:
-        boundCollection (LocusCollection): Collection of enhancer loci derived
-                                           from the input file
+        boundCollection (LocusCollection): Collection of enhancer loci derived from the input file
         stitchWindow (int): Distance to stitch enhancer loci together
-        tssWindow (int): Max distance for stitched loci to removed from a
-                         TSS loci
+        tssWindow (int): Max distance for stitched loci to removed from a TSS loci
         startDict (pd.core.frame.DataFrame): UCSC refseq dataframe
-        removeTSS (bool): Bool to exclude stitched enhancer loci too close to
-                          TSS loci
+        removeTSS (bool): Bool to exclude stitched enhancer loci too close to TSS loci
 
     Returns:
         Tuple[LocusCollection, List[List[str]]]: Tuple of the stiched enhancer
@@ -69,9 +66,7 @@ def regionStitching(
         removeTicker = 0
 
         # Create loci centered around +/- tssWindow of transcribed genes
-        tssLoci = [
-            makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())
-        ]
+        tssLoci = [makeTSSLocus(row, tssWindow) for row in zip(*startDict.to_dict("list").values())]
         tssCollection = LocusCollection(tssLoci, 50)
 
         # Get all enhancer loci
@@ -98,10 +93,7 @@ def regionStitching(
         originalTicker, removeTicker = 0, 0
 
         # Create loci centered around of transcribed genes
-        tssLoci = [
-            makeTSSLocus(row, 50)
-            for row in zip(*startDict.to_dict("list").values())
-        ]
+        tssLoci = [makeTSSLocus(row, 50) for row in zip(*startDict.to_dict("list").values())]
         tssCollection = LocusCollection(tssLoci, 50)
 
         # Loop over stiched enhancer loci
@@ -109,23 +101,17 @@ def regionStitching(
 
             # Get names of transcribed genes loci that overlap with
             # the stiched locus
-            overlappingTSSLoci = tssCollection.getOverlap(
-                stitchedLocus, "both"
-            )
+            overlappingTSSLoci = tssCollection.getOverlap(stitchedLocus, "both")
             tssNames = [str(tssLocus._ID) for tssLocus in overlappingTSSLoci]
             tssNames = startDict.loc[startDict["id"].isin(tssNames), "name"].values
 
             # Remove stiched enhancer loci that overlap with 2+ gene loci
             # and unstitch them
             if len(set(tssNames)) > 2:
-                originalLoci = boundCollection.getOverlap(
-                    stitchedLocus, "both"
-                )
+                originalLoci = boundCollection.getOverlap(stitchedLocus, "both")
                 originalTicker += len(originalLoci)
                 fixedLoci += originalLoci
-                debugOutput.append(
-                    [str(stitchedLocus), stitchedLocus._ID, "Spans_Multiple_TSS"]
-                )
+                debugOutput.append([str(stitchedLocus), stitchedLocus._ID, "Spans_Multiple_TSS"])
                 removeTicker += 1
             else:
                 fixedLoci.append(stitchedLocus)

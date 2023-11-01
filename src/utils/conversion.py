@@ -97,7 +97,7 @@ def check_gff(
                 df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
         else:
             raise ValueError(
-                f"{input}'s seqid column values must start with 'chr'"
+                f"Input file {input}'s seqid column values must start with 'chr'"
             )
     else:
         # Copy the .gff3 file if chromosome names are in correct format

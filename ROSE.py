@@ -17,14 +17,10 @@ def parseArgs() -> argparse.Namespace:
         argparse.Namespace: Argparse space containing parsed arguments
     """
 
-    parser = argparse.ArgumentParser(
-        description="Run ROSE from start to finish"
-    )
+    parser = argparse.ArgumentParser(description="Run ROSE from start to finish")
 
     # Required arguments
-    parser.add_argument(
-        "-c", "--config", type=str, help="Configuration .yaml file"
-    )
+    parser.add_argument("-c", "--config", type=str, help="Configuration .yaml file")
 
     # Printing arguments to the command line
     args = parser.parse_args()

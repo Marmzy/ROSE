@@ -32,8 +32,7 @@ def map_reads(
         extension (int): Number of bp to extend reads by
         sense (str): Strand to map to
         floor (int): Threshold of mapped reads to count towards read density
-        matrix (int): Number of bins per stitched enhancer locus to count
-                      density for
+        matrix (int): Number of bins per stitched enhancer locus to count density for
         verbose (bool): Detailed output boolean
 
     Returns:
@@ -63,34 +62,19 @@ def map_reads(
         gffLocus = Locus(row[0], row[3], row[4], row[6], row[8])
 
         # Get reads that lie in the extended stitched enhancer locus region
-        searchLocus = Locus(
-            gffLocus._chr,
-            gffLocus._start-extension,
-            gffLocus._end+extension,
-            gffLocus._sense,
-            gffLocus._ID
-        )
+        searchLocus = Locus(gffLocus._chr, gffLocus._start-extension, gffLocus._end+extension,
+                            gffLocus._sense, gffLocus._ID)
         reads = bam.getReadsLocus(searchLocus)
 
         # Extend reads
         extendedReads = []
         for locus in reads:
             if locus._sense == "+":
-                locus = Locus(
-                    locus._chr,
-                    locus._start,
-                    locus._end+extension,
-                    locus._sense,
-                    locus._ID
-                )
+                locus = Locus(locus._chr, locus._start, locus._end+extension,
+                              locus._sense, locus._ID)
             if locus._sense == "-":
-                locus = Locus(
-                    locus._chr,
-                    locus._start-extension,
-                    locus._end,
-                    locus._sense,
-                    locus._ID
-                )
+                locus = Locus(locus._chr, locus._start-extension, locus._end,
+                              locus._sense, locus._ID)
             extendedReads.append(locus)
 
         # Define sense and antisense reads
@@ -101,28 +85,16 @@ def map_reads(
             senseReads = [read for read in extendedReads if read._sense == "-"]
             antiReads = [read for read in extendedReads if read._sense == "+"]
 
-        # Create dictionary of number of reads mapped at each genomic position 
+        # Create dictionary of number of reads mapped at each genomic position
         if sense == "+" or sense == "both" or sense == ".":
-            senseHash = Counter([
-                i
-                for read in senseReads
-                for i in range(read._start, read._end+1)
-            ])
+            senseHash = Counter([i for read in senseReads for i in range(read._start, read._end+1)])
         if sense == "-" or sense == "both" or sense == ".":
-            antiHash = Counter([
-                i
-                for read in antiReads
-                for i in range(read._start, read._end+1)
-            ])
+            antiHash = Counter([i for read in antiReads for i in range(read._start, read._end+1)])
 
         # Remove positions in hash with less than or equal 'floor' reads mapped
         # and positions outside the stitched enhancer locus
-        keys = [
-            k
-            for k in set(list(senseHash.keys()) + list(antiHash.keys()))
-            if senseHash[k]+antiHash[k] > floor
-            if gffLocus._start < k < gffLocus._end
-        ]
+        keys = [k for k in set(list(senseHash.keys()) + list(antiHash.keys()))
+                if senseHash[k]+antiHash[k] > floor if gffLocus._start < k < gffLocus._end]
 
         # Creating bin sizes for calculating read density in
         # stitched enhancer loci
@@ -134,18 +106,12 @@ def map_reads(
         # Calculate density of mapped reads per bin in
         # the stitched enhancer locus
         n = 0
-        if (
-            gffLocus._sense == "+"
-            or gffLocus._sense == "."
-            or gffLocus._sense == "both"
-        ):
+        if gffLocus._sense == "+" or gffLocus._sense == "." or gffLocus._sense == "both":
             i = gffLocus._start
             while n < nBins:
                 n += 1
                 binKeys = [k for k in keys if i < k < i+binSize]
-                binDen = float(
-                    sum([senseHash[x]+antiHash[x] for x in binKeys])
-                ) / binSize
+                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys])) / binSize
                 clusterLine += [round(binDen / mmr, 4)]
                 i = i + binSize
         else:
@@ -153,9 +119,7 @@ def map_reads(
             while n < nBins:
                 n += 1
                 binKeys = [k for k in keys if i-binSize < k < i]
-                binDen = float(
-                    sum([senseHash[x]+antiHash[x] for x in binKeys])
-                ) / binSize
+                binDen = float(sum([senseHash[x]+antiHash[x] for x in binKeys])) / binSize
                 clusterLine += [round(binDen / mmr, 4)]
                 i = i - binSize
         newGFF.append(clusterLine)
@@ -184,8 +148,7 @@ def calc_read_density(
         original (str): Original .gff3 enhancers file
         extension (int): Number of bp to extend reads by
         floor (int): Threshold of mapped reads to count towards read density
-        matrix (int): Number of bins per stitched enhancer locus to count
-                      density for
+        matrix (int): Number of bins per stitched enhancer locus to count density for
         rpm (bool): Boolean whether to normalize read density
         sense (str): Strand to map to
         verbose (bool): Detailed output boolean
@@ -208,21 +171,15 @@ def calc_read_density(
     with mp.Pool(mp.cpu_count()) as p:
         results = p.starmap(
             map_reads,
-            [(bam, gff, rpm, extension, sense, floor, matrix, verbose) 
+            [(bam, gff, rpm, extension, sense, floor, matrix, verbose)
              for bam, gff in product(bam_files, [gff_df, original_df])]
         )
 
     # Outputting per-bin read density
     for newGFF, (bam, gff) in zip(results, product(bam_files, [input, original])):
-        out_df = pd.DataFrame(
-            newGFF,
-            columns=["GENE_ID", "locusLine"] + [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(matrix)+1)]
-        )
+        bin_cols = [f"bin_{n}_{str(Path(bam).name)}" for n in range(1, int(matrix)+1)]
+        out_df = pd.DataFrame(newGFF, columns=["GENE_ID", "locusLine"] + bin_cols)
         out_name = check_path(
-            Path(
-                Path(gff).parents[1],
-                "mappedGFF",
-                f"{Path(gff).stem}_{Path(bam).stem}_mapped.txt"
-            )
+            Path(Path(gff).parents[1], "mappedGFF", f"{Path(gff).stem}_{Path(bam).stem}_mapped.txt")
         )
         out_df.to_csv(out_name, sep="\t", index=False)

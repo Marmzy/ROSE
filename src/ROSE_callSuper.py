@@ -28,7 +28,6 @@ def get_super(
     stitched_regions = pd.read_csv(check_file(density), sep="\t")
     rank_cols = list(stitched_regions.columns[:6])
 
-
     # Subtract control signal if control is available
     if control:
         rankBy = stitched_regions.iloc[:, 6:-1].sub(
@@ -37,7 +36,6 @@ def get_super(
         )
     else:
         rankBy = stitched_regions.iloc[:, 6:]
-
 
     # Loop over each bam file density
     for bam in rankBy.columns:
@@ -85,13 +83,9 @@ def get_super(
 
         # Calculate stitched enhancer loci rankings and super status
         enhancer_rank = len(stitched_regions)-rankdata(rankBy_vector, method="ordinal")+1
-        super_status = [
-            1 if sr in superEnhancerRows else 0
-            for sr in range(0, len(stitched_regions))
-        ]
-        additional_data = pd.DataFrame(
-            {"enhancerRank": enhancer_rank, "isSuper": super_status}
-        )
+        super_status = [1 if sr in superEnhancerRows else 0
+                        for sr in range(0, len(stitched_regions))]
+        additional_data = pd.DataFrame({"enhancerRank": enhancer_rank, "isSuper": super_status})
 
         # Output rankings and status dataframe
         enhancer_file = check_path(

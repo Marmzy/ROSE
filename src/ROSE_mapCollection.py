@@ -30,9 +30,7 @@ def map_collection(
     """
 
     # Initialising variables
-    locusTable = [
-        ["REGION_ID", "CHROM", "START", "STOP", "NUM_LOCI", "CONSTITUENT_SIZE"]
-    ]
+    locusTable = [["REGION_ID", "CHROM", "START", "STOP", "NUM_LOCI", "CONSTITUENT_SIZE"]]
 
     # Loading the .bam files from the directory
     # and making sure they are indexed
@@ -57,8 +55,7 @@ def map_collection(
     # Get the size of the enriched regions within the stitched enhancer locus
     for locus in loci:
         refEnrichSize = sum(
-            len(refLocus)
-            for refLocus in list(referenceCollection.getOverlap(locus, "both"))
+            len(refLocus) for refLocus in list(referenceCollection.getOverlap(locus, "both"))
         )
 
         try:
@@ -66,10 +63,8 @@ def map_collection(
         except ValueError:
             stitchCount = 1
 
-        locusTable.append(
-            [locus._ID, locus._chr, locus._start,
-             locus._end, stitchCount, refEnrichSize]
-        )
+        locusTable.append([locus._ID, locus._chr, locus._start, locus._end,
+                           stitchCount, refEnrichSize])
 
     # Calculate stitched enhancer loci signal density for each .bam file
     for bam in bam_files:
@@ -78,9 +73,7 @@ def map_collection(
         mappedLoci = []
 
         # Open mapped stitched enhancer loci file as a dataframe
-        mappedGFF = check_file(
-            Path(output, f"{Path(stitch).stem}_{Path(bam).stem}_mapped.txt")
-        )
+        mappedGFF = check_file(Path(output, f"{Path(stitch).stem}_{Path(bam).stem}_mapped.txt"))
         mappedGFF = pd.read_csv(mappedGFF, sep="\t", header=0, comment="#")
 
         # Calculate signal for all stitched enhancer loci
@@ -100,9 +93,7 @@ def map_collection(
             signal = 0.0
             line = locusTable[i]
             lineLocus = Locus(line[1], line[2], line[3], ".")
-            overlappingRegions = mappedCollection.getOverlap(
-                lineLocus, sense="both"
-            )
+            overlappingRegions = mappedCollection.getOverlap(lineLocus, sense="both")
             for region in overlappingRegions:
                 signal += signalDict[region._ID]
             locusTable[i].append(signal)
@@ -110,10 +101,7 @@ def map_collection(
     # Outputting stitched enhancer loci signal density values per .bam file
     out_df = pd.DataFrame(locusTable[1:], columns=locusTable[0])
     out_name = check_path(
-        Path(
-            Path(output).parents[0],
-            f"{Path(stitch).stem}_enhancer_region_map.txt"
-        )
+        Path(Path(output).parents[0], f"{Path(stitch).stem}_enhancer_region_map.txt")
     )
     out_df.to_csv(out_name, sep="\t", index=False)
 

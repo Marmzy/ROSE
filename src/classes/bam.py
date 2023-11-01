@@ -29,15 +29,10 @@ class Bam:
 
         # Run samtools view and capture output
         cmd = f"samtools view {self._bam} | head -n 1"
-        stdout = subprocess.run(
-            cmd, capture_output=True, shell=True, check=True, text=True
-        ).stdout
+        stdout = subprocess.run(cmd, capture_output=True, shell=True, check=True, text=True).stdout
 
         # Capture chromosome naming from output
-        if "chr" in stdout.split()[2]:
-            self._chr = 1
-        else:
-            self._chr = 0
+        self._chr = 1 if "chr" in stdout.split()[2] else 0
 
     def convertBitwiseFlag(
         self,
@@ -52,10 +47,7 @@ class Bam:
             str: Read strand
         """
 
-        if flag == "16":
-            return "-"
-        else:
-            return "+"
+        return "-" if flag == "16" else "+"
 
     def getTotalReads(
         self
@@ -129,36 +121,17 @@ class Bam:
                         length += int(c[:-1])
                     else:
                         loci.append(
-                            Locus(
-                                read[2],
-                                int(read[3])+total,
-                                int(read[3])+total+length,
-                                strand,
-                                ""
-                            )
+                            Locus(read[2], int(read[3])+total,
+                                  int(read[3])+total+length, strand, "")
                         )
                         total = total + length + int(c[:-1])
                         length = 0
                 if c[-1] != "N":
                     loci.append(
-                        Locus(
-                            read[2],
-                            int(read[3])+total,
-                            int(read[3])+total+length,
-                            strand,
-                            ""
-                        )
+                        Locus(read[2], int(read[3])+total, int(read[3])+total+length, strand, "")
                     )
             else:
-                loci.append(
-                    Locus(
-                        read[2],
-                        int(read[3]),
-                        int(read[3])+len(read[9]),
-                        strand,
-                        ""
-                    )
-                )
+                loci.append(Locus(read[2], int(read[3]), int(read[3])+len(read[9]), strand, ""))
 
         return loci
 

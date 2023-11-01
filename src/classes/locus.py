@@ -13,7 +13,7 @@ class Locus:
         start: int,
         end: int,
         sense: str,
-        ID: str=""
+        ID: str = ""
     ) -> None:
         """Create locus region object
 
@@ -46,11 +46,7 @@ class Locus:
 
         if self._chr != otherLocus._chr:
             return False
-        elif not (
-            self._sense == "."
-            or otherLocus._sense == "."
-            or self._sense == otherLocus._sense
-        ):
+        elif not self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense:
             return False
         elif self._start > otherLocus._start or otherLocus._end > self._end:
             return False
@@ -68,11 +64,8 @@ class Locus:
 
         if self._sense == ".":
             return self
-        else:
-            switch = {"+": "-", "-": "+"}
-            return Locus(
-                self._chr, self._start, self._end, switch[self._sense], self._ID
-            )
+        switch = {"+": "-", "-": "+"}
+        return Locus(self._chr, self._start, self._end, switch[self._sense], self._ID)
 
     def overlaps(
         self,
@@ -89,11 +82,7 @@ class Locus:
 
         if self._chr != otherLocus._chr:
             return False
-        elif not (
-            self._sense == "."
-            or otherLocus._sense == "."
-            or self._sense == otherLocus._sense
-        ):
+        elif not self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense:
             return False
         elif self._start > otherLocus._end or otherLocus._start > self._end:
             return False
@@ -228,10 +217,7 @@ class LocusCollection:
         del self._loci[old]
 
         # Removing the locus from the KeyRange dictionary
-        if old._sense == ".":
-            senseList = ["+", "-"]
-        else:
-            senseList = [old._sense]
+        senseList = ["+", "-"] if old._sense == "." else [old._sense]
 
         for k in self.__getKeyRange(old):
             for sense in senseList:
@@ -249,8 +235,7 @@ class LocusCollection:
             sense (str, optional): TSS loci strands. Defaults to "sense".
 
         Returns:
-            TypedDict: Dictionary keys, with TSS loci that envelop the
-                       enhancer locus as keys
+            TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
         """
 
         # Get all loci from the TSS collection that (partly) overlap
@@ -258,17 +243,12 @@ class LocusCollection:
         matches = self.__subsetHelper(locus, sense)
 
         # Get all TSS loci that envelop the enhancer locus
-        if sense == "sense" or sense == "both":
+        if sense in ["sense", "both"]:
+            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
+        if sense in ["antisense", "both"]:
             realMatches = {
-                i: None for i in filter(
-                    lambda lcs: lcs.contains(locus), matches
-                )
-            }
-        if sense == "antisense" or sense == "both":
-            realMatches = {
-                i: None for i in filter(
-                    lambda lcs: lcs.getAntisenseLocus().contains(locus), matches
-                )
+                i: None
+                for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)
             }
 
         return realMatches.keys()
@@ -292,8 +272,7 @@ class LocusCollection:
         """Get enhancer loci that overlap with a given enhancer locus
 
         Args:
-            locus (Locus): Locus against which overlapping loci are to be
-                           searched for
+            locus (Locus): Locus against which overlapping loci are to be searched for
             sense (str, optional): Locus strand. Defaults to "sense".
 
         Returns:
@@ -305,12 +284,10 @@ class LocusCollection:
         matches = self.__subsetHelper(locus, sense)
 
         # Remove loci that don't really overlap
-        if sense == "sense" or sense == "both":
+        if sense in ["sense", "both"]:
             realMatches = {lcs for lcs in matches if lcs.overlaps(locus)}
-        if sense == "antisense" or sense == "both":
-            realMatches = {
-                lcs for lcs in matches if lcs.getAntisenseLocus().overlaps(locus)
-            }
+        if sense in ["antisense", "both"]:
+            realMatches = {lcs for lcs in matches if lcs.getAntisenseLocus().overlaps(locus)}
 
         return realMatches
 
@@ -340,13 +317,8 @@ class LocusCollection:
             if locus in oldCollection._loci:
                 oldCollection.remove(locus)
                 overlappingLoci = oldCollection.getOverlap(
-                    Locus(
-                        locus._chr,
-                        locus._start-stitchWindow,
-                        locus._end+stitchWindow,
-                        locus._sense,
-                        locus._ID
-                    ),
+                    Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow,
+                          locus._sense, locus._ID),
                     sense
                 )
 
@@ -358,34 +330,17 @@ class LocusCollection:
                     overlapCoords = [locus._start, locus._end]
 
                     for overlappingLocus in overlappingLoci:
-                        overlapCoords += [
-                            overlappingLocus._start,
-                            overlappingLocus._end
-                        ]
+                        overlapCoords += [overlappingLocus._start, overlappingLocus._end]
                         oldCollection.remove(overlappingLocus)
                     if sense == "both":
-                        locus = Locus(
-                            locus._chr,
-                            min(overlapCoords),
-                            max(overlapCoords),
-                            ".",
-                            locus._ID
-                        )
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords),
+                                      ".", locus._ID)
                     else:
-                        locus = Locus(
-                            locus._chr,
-                            min(overlapCoords),
-                            max(overlapCoords),
-                            locus._sense,
-                            locus._ID
-                        )
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords),
+                                      locus._sense, locus._ID)
                     overlappingLoci = oldCollection.getOverlap(
-                        Locus(
-                            locus._chr,
-                            locus._start-stitchWindow,
-                            locus._end+stitchWindow,
-                            locus._sense
-                        ),
+                        Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow,
+                              locus._sense),
                         sense
                     )
 
@@ -541,20 +496,10 @@ def locusCollectionToGFF(
 
     lociList = locusCollection.getLoci()
     gff_df = pd.DataFrame(
-        [
-            (
-                locus._chr,
-                "ROSE",
-                "stitched_enhancer_locus",
-                locus._start,
-                locus._end,
-                ".",
-                locus._sense,
-                ".",
-                locus._ID
-            )
-            for locus in lociList
-        ]
+        [(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start,
+          locus._end, ".", locus._sense, ".", locus._ID)
+         for locus in lociList
+         ]
     )
 
     return gff_df
