@@ -46,7 +46,7 @@ class Locus:
 
         if self._chr != otherLocus._chr:
             return False
-        elif not self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense:
+        elif self._sense != "." and otherLocus._sense != "." and self._sense != otherLocus._sense:
             return False
         elif self._start > otherLocus._start or otherLocus._end > self._end:
             return False
@@ -244,11 +244,10 @@ class LocusCollection:
 
         # Get all TSS loci that envelop the enhancer locus
         if sense in ["sense", "both"]:
-            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
+            realMatches = {match: None for match in matches if match.contains(locus)}
         if sense in ["antisense", "both"]:
             realMatches = {
-                i: None
-                for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)
+                match: None for match in matches if match.getAntisenseLocus().contains(locus)
             }
 
         return realMatches.keys()

@@ -38,7 +38,7 @@ def bed_to_gff3(
         gff_df.to_csv(f_out, sep="\t", header=False, index=False, mode="a")
 
 
-def check_gff(
+def check_gff3(
     input: str,
     output: str
 ) -> None:
@@ -116,16 +116,16 @@ def gff_to_gff3(
     """
 
     # Reading the .gff file as a dataframe
+    # df = pd.read_csv(input, sep="\t", header=None, comment="#")
     df = pd.read_csv(input, sep="\t", header=None, comment="#")
 
     # Filling missing values
     df.iloc[:, 1] = ["ROSE"] * len(df)
-    df.iloc[:, 2].fillna("sequence_feature", inplace=True)
-    df.iloc[:, 5].fillna(".", inplace=True)
-    df.iloc[:, 7].fillna(".", inplace=True)
-    df.iloc[:, 8].fillna(
+    df.iloc[:, 2] = df.iloc[:, 2].fillna("sequence_feature")
+    df.iloc[:, 5] = df.iloc[:, 5].fillna(".")
+    df.iloc[:, 7] = df.iloc[:, 7].fillna(".")
+    df.iloc[:, 8] = df.iloc[:, 8].fillna(
         f"{df.iloc[:, 0]}:{df.iloc[:, 6]}:{df.iloc[:, 3]}-{df.iloc[:, 4]}",
-        inplace=True
     )
 
     # Outputting the gff3 dataframe

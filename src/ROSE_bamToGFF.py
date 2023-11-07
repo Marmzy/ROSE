@@ -15,7 +15,7 @@ from typing import List, Union
 
 def map_reads(
     bam_file: str,
-    gff_df: pd.core.frame.DataFrame,
+    gff_df: pd.DataFrame,
     rpm: bool,
     extension: int,
     sense: str,
@@ -27,7 +27,7 @@ def map_reads(
 
     Args:
         bam_file (str): .bam file whose reads are to be mapped
-        gff_df (pd.core.frame.DataFrame): Stitched enhancer loci dataframe
+        gff_df (pd.DataFrame): Stitched enhancer loci dataframe
         rpm (bool): Boolean whether to normalize read density
         extension (int): Number of bp to extend reads by
         sense (str): Strand to map to
@@ -106,7 +106,7 @@ def map_reads(
         # Calculate density of mapped reads per bin in
         # the stitched enhancer locus
         n = 0
-        if gffLocus._sense == "+" or gffLocus._sense == "." or gffLocus._sense == "both":
+        if gffLocus._sense in ["+", ".", "both"]:
             i = gffLocus._start
             while n < nBins:
                 n += 1

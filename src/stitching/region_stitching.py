@@ -27,9 +27,8 @@ def makeStartDict(
     startDict.loc[startDict["strand"] == "-", ["txStart", "txEnd"]] = \
         (startDict.loc[startDict["strand"] == "-", ("txEnd", "txStart")].values)
     startDict = startDict.rename(
-        {"name": "id", "strand": "sense", "chrom": "chr",
-         "txStart": "start", "txEnd": "end", "name2": "name"},
-        axis=1
+        columns={"name": "id", "strand": "sense", "chrom": "chr",
+                 "txStart": "start", "txEnd": "end", "name2": "name"}
     )
 
     return startDict
