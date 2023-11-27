@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import errno
 import git
 import pathlib
@@ -25,7 +24,9 @@ def check_file(
     """
 
     if not Path(filename).is_file():
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), filename
+        )
 
     return filename
 
@@ -33,7 +34,8 @@ def check_file(
 def check_path(
     filename: pathlib.PosixPath
 ) -> str:
-    """Checks the path of a given file and recursively creates new directories if necessary
+    """Checks the path of a given file and recursively creates new directories
+       if necessary
     Args:
         filename (pathlib.PosixPath): Complete path to file
     Returns:

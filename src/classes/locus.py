@@ -13,7 +13,7 @@ class Locus:
         start: int,
         end: int,
         sense: str,
-        ID: str=""
+        ID: str = ""
     ) -> None:
         """Create locus region object
 
@@ -46,7 +46,7 @@ class Locus:
 
         if self._chr != otherLocus._chr:
             return False
-        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
+        elif self._sense != "." and otherLocus._sense != "." and self._sense != otherLocus._sense:
             return False
         elif self._start > otherLocus._start or otherLocus._end > self._end:
             return False
@@ -61,12 +61,11 @@ class Locus:
         Returns:
             Locus: Locus object with an antisense strand
         """
-        
+
         if self._sense == ".":
             return self
-        else:
-            switch = {"+": "-", "-": "+"}
-            return Locus(self._chr, self._start, self._end, switch[self._sense], self._ID)
+        switch = {"+": "-", "-": "+"}
+        return Locus(self._chr, self._start, self._end, switch[self._sense], self._ID)
 
     def overlaps(
         self,
@@ -83,18 +82,19 @@ class Locus:
 
         if self._chr != otherLocus._chr:
             return False
-        elif not (self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense):
+        elif not self._sense == "." or otherLocus._sense == "." or self._sense == otherLocus._sense:
             return False
         elif self._start > otherLocus._end or otherLocus._start > self._end:
             return False
         else:
             return True
-        
+
     def __eq__(
         self,
         other: Locus
     ) -> bool:
-        """Check if two loci have the same chromosome, strand, start and end positions
+        """Check if two loci have the same chromosome, strand, start
+           and end positions
 
         Args:
             other (Locus): Locus to compare with
@@ -141,7 +141,8 @@ class Locus:
         self,
         other: Locus
     ) -> bool:
-        """Check if two loci do not have the same chromosome, strand, start and end positions
+        """Check if two loci do not have the same chromosome, strand, start
+           and end positions
 
         Args:
             other (Locus): Locus to compare with
@@ -182,7 +183,7 @@ class LocusCollection:
         self._winSize = windowSize
         for locus in loci:
             self.__addLocus(locus)
-        
+
     def append(
         self,
         new: Locus
@@ -208,18 +209,15 @@ class LocusCollection:
             ValueError: If locus is not in the loci collection
         """
 
-        #Check that locus is actually present
+        # Check that locus is actually present
         if old not in self._loci.keys():
             raise ValueError("Locus to remove is not in the collection")
 
-        #Removing the locus from the loci dictionary
+        # Removing the locus from the loci dictionary
         del self._loci[old]
 
-        #Removing the locus from the KeyRange dictionary
-        if old._sense == ".":
-            senseList = ["+", "-"]
-        else:
-            senseList = [old._sense]
+        # Removing the locus from the KeyRange dictionary
+        senseList = ["+", "-"] if old._sense == "." else [old._sense]
 
         for k in self.__getKeyRange(old):
             for sense in senseList:
@@ -240,17 +238,18 @@ class LocusCollection:
             TypedDict: Dictionary keys, with TSS loci that envelop the enhancer locus as keys
         """
 
-        #Get all loci from the TSS collection that (partly) overlap with the enhancer locus
+        # Get all loci from the TSS collection that (partly) overlap
+        # with the enhancer locus
         matches = self.__subsetHelper(locus, sense)
 
-        #Get all TSS loci that envelop the enhancer locus
-        if sense == "sense" or sense == "both":
-            realMatches = {i: None for i in filter(lambda lcs: lcs.contains(locus), matches)}
-        if sense == "antisense" or sense == "both":
+        # Get all TSS loci that envelop the enhancer locus
+        if sense in ["sense", "both"]:
+            realMatches = {match: None for match in matches if match.contains(locus)}
+        if sense in ["antisense", "both"]:
             realMatches = {
-                i: None for i in filter(lambda lcs: lcs.getAntisenseLocus().contains(locus), matches)
+                match: None for match in matches if match.getAntisenseLocus().contains(locus)
             }
-        
+
         return realMatches.keys()
 
     def getLoci(
@@ -263,7 +262,7 @@ class LocusCollection:
         """
 
         return self._loci.keys()
-        
+
     def getOverlap(
         self,
         locus: Locus,
@@ -279,13 +278,14 @@ class LocusCollection:
             set: Set of overlapping loci
         """
 
-        #Get all loci from the enhancer collection that overlap with the enhancer locus
+        # Get all loci from the enhancer collection that overlap with
+        # the enhancer locus
         matches = self.__subsetHelper(locus, sense)
 
-        #Remove loci that don't really overlap
-        if sense == "sense" or sense == "both":
+        # Remove loci that don't really overlap
+        if sense in ["sense", "both"]:
             realMatches = {lcs for lcs in matches if lcs.overlaps(locus)}
-        if sense == "antisense" or sense == "both":
+        if sense in ["antisense", "both"]:
             realMatches = {lcs for lcs in matches if lcs.getAntisenseLocus().overlaps(locus)}
 
         return realMatches
@@ -298,28 +298,31 @@ class LocusCollection:
         """Stitch enhancer loci together into a LocusCollection
 
         Args:
-            stitchWindow (int, optional): Window size to stitch enhancers together. Defaults to 1.
+            stitchWindow (int, optional): Window size to stitch enhancers
+                                          together. Defaults to 1.
             sense (str, optional): LocusCollection strand. Defaults to "both".
 
         Returns:
             LocusCollection: Collection of stichted enhancer loci
         """
 
-        #Initialising variables
+        # Initialising variables
         locusList = self.getLoci()
         oldCollection = LocusCollection(locusList, 500)
         stitchedCollection = LocusCollection([], 500)
 
-        #Loop over all enhancers
+        # Loop over all enhancers
         for locus in locusList:
             if locus in oldCollection._loci:
                 oldCollection.remove(locus)
                 overlappingLoci = oldCollection.getOverlap(
-                    Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense, locus._ID),
+                    Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow,
+                          locus._sense, locus._ID),
                     sense
                 )
 
-                #Loop over enhancers that overlap with the target enhancer and create stitched enhancer locus
+                # Loop over enhancers that overlap with the target enhancer and
+                # create stitched enhancer locus
                 stitchTicker = 1
                 while len(overlappingLoci) > 0:
                     stitchTicker += len(overlappingLoci)
@@ -329,15 +332,18 @@ class LocusCollection:
                         overlapCoords += [overlappingLocus._start, overlappingLocus._end]
                         oldCollection.remove(overlappingLocus)
                     if sense == "both":
-                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), ".", locus._ID)
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords),
+                                      ".", locus._ID)
                     else:
-                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords), locus._sense, locus._ID)
+                        locus = Locus(locus._chr, min(overlapCoords), max(overlapCoords),
+                                      locus._sense, locus._ID)
                     overlappingLoci = oldCollection.getOverlap(
-                        Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow, locus._sense),
+                        Locus(locus._chr, locus._start-stitchWindow, locus._end+stitchWindow,
+                              locus._sense),
                         sense
                     )
 
-                #Add the stiched enhancer locus to a new LocusCollection
+                # Add the stiched enhancer locus to a new LocusCollection
                 locus._ID = f"{stitchTicker}_{locus._ID}_lociStitched"
                 stitchedCollection.append(locus)
 
@@ -347,13 +353,14 @@ class LocusCollection:
         self,
         locus: Locus
     ) -> None:
-        """Add locus data to dictionary in the following order: chromosome+strand, region, Locus object
+        """Add locus data to dictionary in the following order:
+           chromosome+strand, region, Locus object
 
         Args:
             locus (Locus): Enhancer locus region
         """
 
-        #Add unique enhancer locus regions
+        # Add unique enhancer locus regions
         if locus not in self._loci:
             self._loci[locus] = None
             if locus._sense == ".":
@@ -381,7 +388,8 @@ class LocusCollection:
             range: Locus region key range
         """
 
-        #Create range based on the amount of window sizes that can fit in the locus region
+        # Create range based on the amount of window sizes that can
+        # fit in the locus region
         start = locus._start // self._winSize
         end = locus._end // self._winSize + 1
         return range(start, end)
@@ -415,11 +423,11 @@ class LocusCollection:
             TypedDict[Locus]: Subsetted list of loci
         """
 
-        #Initialising variables
+        # Initialising variables
         matches = dict()
         senses = ["+", "-"]
 
-        #Create filter to select enhancer loci
+        # Create filter to select enhancer loci
         if locus._sense == "." or sense == "both":
             lamb = lambda s: True
         elif sense == "sense":
@@ -429,12 +437,12 @@ class LocusCollection:
         else:
             raise ValueError(f"Inappropriate sense value: '{sense}'")
 
-        #Select enhancer loci based on filter
+        # Select enhancer loci based on filter
         for s in filter(lamb, senses):
             chrKey = locus._chr + s
             if chrKey in self._chrToCoordToLoci:
                 for n in self.__getKeyRange(locus):
-                    if n in self._chrToCoordToLoci[chrKey]:     # -> remove the key range "step" in dict? -> doesn't add new info + values get replaced
+                    if n in self._chrToCoordToLoci[chrKey]:
                         for lcs in self._chrToCoordToLoci[chrKey][n]:
                             matches[lcs] = None
 
@@ -456,17 +464,18 @@ def gffToLocusCollection(
         LocusCollection: Collection of all .gff3 entries as loci
     """
 
-    #Reading the input file as a dataframe
+    # Reading the input file as a dataframe
     gff_df = pd.read_csv(infile, sep="\t", header=None, comment='#')
     gff = gff_df.iloc[:, [0, 3, 4, 6, 8]].copy()
 
-    #Converting each entry to a Locus object
+    # Converting each entry to a Locus object
     lociList = [Locus(*row) for row in zip(*gff.to_dict("list").values())]
 
-    #Checking that entries have unique names
+    # Checking that entries have unique names
     if len(gff.iloc[:, 4]) != len(set(gff.iloc[:, 4])):
         raise ValueError(
-            "Last column (attributes column) of the .gff3 file must contain unique identifiers for each entry"
+            "Last column (attributes column) of the .gff3 file must contain \
+                unique identifiers for each entry"
         )
 
     return LocusCollection(lociList, 500)
@@ -486,8 +495,10 @@ def locusCollectionToGFF(
 
     lociList = locusCollection.getLoci()
     gff_df = pd.DataFrame(
-        [(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start, locus._end, ".", locus._sense, ".", locus._ID)
-         for locus in lociList]
+        [(locus._chr, "ROSE", "stitched_enhancer_locus", locus._start,
+          locus._end, ".", locus._sense, ".", locus._ID)
+         for locus in lociList
+         ]
     )
 
     return gff_df
@@ -507,5 +518,5 @@ def makeTSSLocus(
         Locus: Gene locus
     """
 
-    #Creating the locus object
+    # Creating the locus object
     return Locus(entry[1], entry[3]-window, entry[3]+window, entry[2], entry[0])

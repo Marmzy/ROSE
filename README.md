@@ -50,24 +50,24 @@ As ROSE contains a lot of optional parameters, rather than passing them as addit
 ```
 data:
   annotation: "./data/annotation/hg18_refseq.ucsc"	# UCSC table track annotation file
-  control: "./data/MM1S_WCE.hg18.bwt.sorted.bam"	  # Control .bam file to rank enhancers by
-  input: "./data/HG18_MM1S_MED1.gff"				        # File (.bed, .gff or .gtf) containing enhancer binding sites
-  output: "output"									                # Output directory name
-  rankby: "./data/bams"								              # List of .bam files to rank enhancers by
+  control: "./data/MM1S_WCE.hg18.bwt.sorted.bam"	# Control .bam file to rank enhancers by
+  input: "./data/HG18_MM1S_MED1.gff"			# File (.bed, .gff or .gtf) containing enhancer binding sites
+  output: "output"					# Output directory name
+  rankby: "./data/bams"					# List of .bam files to rank enhancers by
 
 mapping:
-  extension: 200									                  # Extends reads by n bp
-  floor: 1											                    # Read floor threshold necessary to count towards density
-  matrix: 1											                    # Variable bin sized matrix
-  rpm: True											                    # Normalizes density to reads per million (rpm)
-  sense: "both"										                  # Strand to map to
+  extension: 200					# Extends reads by n bp
+  floor: 1						# Read floor threshold necessary to count towards density
+  matrix: 1						# Variable bin sized matrix
+  rpm: True						# Normalizes density to reads per million (rpm)
+  sense: "both"						# Strand to map to
 
 stitching:
-  debug: True										                    # Enhancer stitching debugging output
-  stitch: 12500										                  # Max linking distance for stitching
-  tss: 2500											                    # Distance from TSS to exclude
+  debug: True						# Enhancer stitching debugging output
+  stitch: 12500						# Max linking distance for stitching
+  tss: 2500						# Distance from TSS to exclude
 
-verbose: True										                    # Print verbose messages
+verbose: True						# Print verbose messages
 ```
 
 Once the .yaml file has been set, ROSE can easily be run using the following command: `python3 ROSE.py -c ./config/example.yaml`

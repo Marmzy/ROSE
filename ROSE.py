@@ -2,7 +2,6 @@
 
 import argparse
 
-from copy import copy
 from pathlib import Path
 from src.ROSE_bamToGFF import calc_read_density
 from src.ROSE_callSuper import get_super
@@ -20,10 +19,10 @@ def parseArgs() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Run ROSE from start to finish")
 
-    #Required arguments
+    # Required arguments
     parser.add_argument("-c", "--config", type=str, help="Configuration .yaml file")
 
-    #Printing arguments to the command line
+    # Printing arguments to the command line
     args = parser.parse_args()
     check_file(args.config)
 
@@ -32,39 +31,39 @@ def parseArgs() -> argparse.Namespace:
 
 def main():
 
-    #Parse arguments from the command line
+    # Parse arguments from the command line
     args = parseArgs()
 
-    #Read the input configuration file
+    # Read the input configuration file
     path = get_path()
     conf = read_yaml(args.config)
 
-    #Check existence of input files
+    # Check existence of input files
     check_file(conf["data"]["input"])
     check_file(conf["data"]["annotation"])
     if conf["data"]["control"]:
         check_file(conf["data"]["control"])
 
-    #Stitch enhancer loci
+    # Stitch enhancer loci
     original, stitched = stitch_loci(
-        input = conf["data"]["input"],
-        output = conf["data"]["output"],
-        annot = conf["data"]["annotation"],
+        input=conf["data"]["input"],
+        output=conf["data"]["output"],
+        annot=conf["data"]["annotation"],
         **conf["stitching"],
-        verbose = conf["verbose"], 
+        verbose=conf["verbose"],
     )
 
-    #Map reads to each stitched enhancer locus bin
+    # Map reads to each stitched enhancer locus bin
     calc_read_density(
         conf["data"]["rankby"],
         stitched,
         original,
         conf["data"]["control"],
         **conf["mapping"],
-        verbose = conf["verbose"],
+        verbose=conf["verbose"],
     )
 
-    #Calculate read density signal for each stitched enhancer locus
+    # Calculate read density signal for each stitched enhancer locus
     density = map_collection(
         stitched,
         original,
@@ -73,7 +72,7 @@ def main():
         Path(path, conf["data"]["output"], "mappedGFF")
     )
 
-    #Identifying and visualising superenhancers
+    # Identifying and visualising superenhancers
     get_super(
         Path(path, conf["data"]["output"]),
         density,

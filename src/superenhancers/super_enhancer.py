@@ -12,18 +12,28 @@ def calculate_cutoff(
     """Calculate superenhancer signal density cut-off value
 
     Args:
-        vector (np.ndarray): Array of (control corrected) stitched enhancer loci density signals
+        vector (np.ndarray): Array of (control corrected) stitched enhancer
+                             loci density signals
 
     Returns:
-        np.float: Density signal cut-off value to delineate superenhancers from normal enhaners 
+        np.float: Density signal cut-off value to delineate superenhancers
+                  from normal enhaners
     """
 
-    #Get the slope of the line to slide
+    # Get the slope of the line to slide
     vector.sort()
     slope = (max(vector) - min(vector)) / len(vector)
 
-    #Minimising the (control corrected) stitched enhancer loci density signal function (aka finding the tangent of the function)
-    x_min = math.floor(minimize_scalar(numPts_below_line, bounds=(1, len(vector)), args=(vector, slope), method="bounded")["x"])
+    # Minimising the (control corrected) stitched enhancer loci density signal
+    # function (aka finding the tangent of the function)
+    x_min = math.floor(
+        minimize_scalar(
+            numPts_below_line,
+            bounds=(1, len(vector)),
+            args=(vector, slope),
+            method="bounded"
+        )["x"]
+    )
     y_cutoff = vector[x_min-1]
 
     return y_cutoff
@@ -42,13 +52,15 @@ def numPts_below_line(
         slope (np.float64): Slope coefficient
 
     Returns:
-        int: Number of signal density values equal to or smaller than a line going through point x 
+        int: Number of signal density values equal to or smaller than a
+             line going through point x
     """
 
-    #Calculate line equation at point x   (y = ax+b)
+    # Calculate line equation at point x   (y = ax+b)
     y = vector[int(x)-1]
     b = y-(slope*x)
 
-    #Calculate y values of points on the line and the number of points that are larger than those of the vector
+    # Calculate y values of points on the line and the number of points
+    # that are larger than those of the vector
     xPts = np.array(range(1, len(vector)+1))
-    return sum(vector <= (xPts*slope+b)) 
+    return sum(vector <= (xPts*slope+b))
